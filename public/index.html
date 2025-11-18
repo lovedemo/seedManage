@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>本地磁力搜索预览</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <h1>本地磁力搜索预览</h1>
+        <p class="subtitle">输入关键字或粘贴磁力链接，快速获取预览卡片。</p>
+      </header>
+
+      <main>
+        <section class="search-panel">
+          <form id="searchForm" class="search-form">
+            <label for="searchInput" class="search-label">搜索关键字 / 磁力链接</label>
+            <div class="search-input-group">
+              <input
+                id="searchInput"
+                name="query"
+                type="text"
+                placeholder="例如：Ubuntu ISO 或 magnet:?xt=..."
+                autocomplete="off"
+                required
+              />
+              <button type="submit" id="searchButton">搜索</button>
+            </div>
+          </form>
+          <p class="helper">提示：粘贴磁链可直接生成卡片，不会请求远程服务。</p>
+        </section>
+
+        <section class="result-section" aria-live="polite">
+          <div id="status" class="status" hidden></div>
+          <div id="results" class="results-grid"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>运行于本地 · 远程来源：<strong id="serviceName">加载中...</strong></span>
+      </footer>
+    </div>
+
+    <template id="cardTemplate">
+      <article class="result-card">
+        <header class="card-header">
+          <h2 class="card-title"></h2>
+          <span class="card-badge"></span>
+        </header>
+        <dl class="card-meta"></dl>
+        <footer class="card-footer">
+          <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
+        </footer>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

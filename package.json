@@ -1,0 +1,20 @@
+{
+  "name": "local-magnet-search",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local web service to search magnet links and render results as cards.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
