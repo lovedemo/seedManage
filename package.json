@@ -1,0 +1,13 @@
+{
+  "name": "magnet-search-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend for the local magnet search adapters UI.",
+  "scripts": {
+    "dev": "serve frontend -l 5173",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "title": "Open Source Linux Distribution Bundle",
+    "size": 5368709120,
+    "seeders": 350,
+    "leechers": 24,
+    "magnet": "magnet:?xt=urn:btih:1111111111111111111111111111111111111111&dn=linux-distros&tr=udp%3A%2F%2Ftracker.example.org%3A6969",
+    "uploaded": "2023-06-17T10:15:00.000Z",
+    "infoHash": "1111111111111111111111111111111111111111",
+    "category": "Software",
+    "source": "local"
+  },
+  {
+    "title": "Creative Commons Nature Documentary",
+    "size": 2147483648,
+    "seeders": 120,
+    "leechers": 8,
+    "magnet": "magnet:?xt=urn:btih:2222222222222222222222222222222222222222&dn=cc-nature-doc&tr=udp%3A%2F%2Ftracker.example.org%3A1337",
+    "uploaded": "2023-08-05T08:00:00.000Z",
+    "infoHash": "2222222222222222222222222222222222222222",
+    "category": "Video",
+    "source": "local"
+  },
+  {
+    "title": "Public Domain Classic Literature Collection",
+    "size": 1073741824,
+    "seeders": 58,
+    "leechers": 4,
+    "magnet": "magnet:?xt=urn:btih:3333333333333333333333333333333333333333&dn=classic-books&tr=udp%3A%2F%2Ftracker.example.org%3A8080",
+    "uploaded": "2022-11-02T14:30:00.000Z",
+    "infoHash": "3333333333333333333333333333333333333333",
+    "category": "Books",
+    "source": "local"
+  }
+]
