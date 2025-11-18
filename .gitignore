@@ -16,3 +16,9 @@ logs/
 # Build artifacts
 dist/
 coverage/
+
+# Go build artifacts
+backend/bin/
+*.exe
+*.test
+*.out

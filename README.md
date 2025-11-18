@@ -1,67 +1,94 @@
 # 本地磁力搜索卡片服务
 
-这是一个运行在本地的网页服务，允许你输入关键字或直接粘贴磁力链接，然后从远端磁力搜索服务获取结果，并将其以卡片形式清晰地展示。
+该项目提供一个前后端分离的本地磁力搜索体验：
+
+- **后端（Go）** 负责聚合不同磁力搜索来源，通过适配器（Adapter）模式解析并统一结果。
+- **前端（静态网页）** 提供卡片式的展示界面，可在页面上自由切换不同的数据适配器。
+
+前端与后端在同一个仓库中维护，便于本地开发和部署。
 
 ## 功能特性
 
-- ✅ 支持关键字搜索与磁力链接粘贴
-- ✅ 默认连接公开磁力搜索服务（可通过环境变量覆盖）
-- ✅ 远端服务不可用时自动回退到本地示例数据
-- ✅ 结果以卡片形式展示，包含大小、做种数、Info Hash 等信息
-- ✅ 一键复制磁力链接
+- 🔍 支持关键字搜索与直接粘贴磁力链接
+- 🔁 多个磁力源适配器，页面内实时切换
+- 🛡️ 主适配器出错或无结果时自动回退到备用适配器
+- 📄 卡片化展示：大小、做种数、Info Hash、Trackers 等关键信息一目了然
+- 📋 一键复制磁力链接
 
-## 快速开始
+## 目录结构
+
+```
+.
+├── backend/               # Go 后端服务（提供 JSON API）
+├── frontend/              # 静态前端页面（HTML/CSS/JS）
+├── data/                  # 本地示例数据（备用适配器使用）
+├── package.json           # 前端开发依赖 & 脚本
+├── package-lock.json
+└── README.md
+```
+
+## 后端（Go）
+
+### 快速启动
+
+```bash
+# 在项目根目录
+cd backend
+GO111MODULE=on go run .
+```
+
+默认监听 `http://localhost:3001`，提供 `GET /api/search`、`GET /api/adapters`、`GET /api/health` 三个接口。
+
+### 环境变量
+
+| 变量名 | 默认值 | 说明 |
+| --- | --- | --- |
+| `PORT` | `3001` | 后端服务监听端口 |
+| `MAGNET_SEARCH_ENDPOINT` | `https://apibay.org/q.php` | The Pirate Bay（apibay）公开 API 地址 |
+| `SAMPLE_DATA_FILE` | `data/sampleResults.json` | 本地示例数据路径（JSON 数组） |
+| `DEFAULT_ADAPTER` | `apibay` | 默认使用的适配器 ID |
+| `FALLBACK_ADAPTER` | `sample` | 备用适配器 ID（主适配器失败或无结果时触发） |
+
+> 适配器采用接口化设计，你可以在 `backend/main.go` 中扩展更多来源，只需实现 `Search(ctx, term)` 方法并注册进 `AdapterRegistry` 即可。
+
+## 前端（静态网页）
+
+### 安装与启动
 
 ```bash
 npm install
 npm start
 ```
 
-服务默认运行在 <http://localhost:3000>。
+脚本会使用 [`serve`](https://github.com/vercel/serve) 将 `frontend/` 目录以静态网站形式托管，默认端口为 `http://localhost:5173`。
 
-## 环境变量
+首次加载时前端会自动调用后端的 `/api/adapters` 接口同步适配器列表。若后端运行在其它地址，可在浏览器控制台执行以下命令后刷新页面：
 
-| 变量名 | 默认值 | 说明 |
+```js
+localStorage.setItem('magnetApiBase', 'http://your-backend-host:3001');
+```
+
+## 适配器一览
+
+| 适配器 ID | 名称 | 描述 |
 | --- | --- | --- |
-| `PORT` | `3000` | 服务监听端口 |
-| `MAGNET_SEARCH_ENDPOINT` | `https://apibay.org/q.php` | 远端磁力搜索 API。必须支持 `?q=<关键词>` 的查询参数，并返回数组 JSON |
+| `apibay` | The Pirate Bay (apibay.org) | 通过公开 API 获取实时磁力资源数据 |
+| `sample` | 本地示例数据 | 读取 `data/sampleResults.json` 提供的内置演示数据 |
 
-可以在项目根目录创建 `.env` 文件覆盖默认配置。
+> 页面左下角会显示当前适配器的简介和来源，切换选项后立即生效。
 
-## 目录结构
+## API 简述
 
-```
-.
-├── data/                 # 本地示例结果，用于远端失败时回退
-├── public/               # 前端静态资源（HTML/CSS/JS）
-├── src/
-│   └── server.js         # Express 后端：代理搜索与静态文件
-├── package.json
-├── package-lock.json
-└── README.md
-```
+- `GET /api/adapters`：返回已注册的适配器、默认适配器 ID
+- `GET /api/search?q=<keyword>&adapter=<id>`：执行搜索。若 `q` 为 `magnet:?` 前缀的磁力链接，则直接解析并返回磁力卡片
+- `GET /api/health`：健康检查，包含当前启用的适配器列表
 
-## 自定义远端搜索服务
+所有接口均返回 UTF-8 编码的 JSON 数据，并允许跨域访问，方便单独部署前后端。
 
-如果你有自己的磁力搜索 API，可以通过设置 `MAGNET_SEARCH_ENDPOINT` 指向它。后端会向该地址发起 `GET` 请求，并附带 `q` 参数，将响应映射为卡片数据。
+## 扩展提示
 
-只要远端返回的数组元素包含至少以下字段即可：
-
-```json
-{
-  "name": "资源标题",
-  "info_hash": "哈希",
-  "size": 123,
-  "seeders": 10,
-  "leechers": 2,
-  "added": 1697190000
-}
-```
-
-## 注意事项
-
-- 默认的公开服务可能并非一直可用，如果失败，界面会提示“使用本地数据”。
-- 用于演示的本地数据位于 `data/sampleResults.json`，可自行替换为真实数据。
-- 复制磁力链接需要浏览器支持 `navigator.clipboard`。如果不支持，会退化为在新标签页打开磁力链接。
+- 新增适配器时，建议在后台统一转换为 `SearchResult` 结构，保持前端无感知
+- `data/sampleResults.json` 仅作为演示，可替换成本地合法数据
+- 如果需要持久化后端服务，可将 `go run .` 替换为 `go build` 后执行生成的二进制
 
 祝你使用愉快！

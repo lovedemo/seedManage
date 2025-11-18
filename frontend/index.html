@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>本地磁力搜索预览</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="page">
@@ -28,8 +28,15 @@
               />
               <button type="submit" id="searchButton">搜索</button>
             </div>
+            <div class="adapter-switcher">
+              <label for="adapterSelect" class="adapter-label">数据源</label>
+              <select id="adapterSelect" name="adapter">
+                <option value="" disabled selected>加载中...</option>
+              </select>
+              <p class="adapter-description" id="adapterDescription"></p>
+            </div>
           </form>
-          <p class="helper">提示：粘贴磁链可直接生成卡片，不会请求远程服务。</p>
+          <p class="helper">提示：粘贴磁链可直接生成卡片，不会请求远程服务。可在下方选择不同磁力搜索适配器。</p>
         </section>
 
         <section class="result-section" aria-live="polite">
@@ -39,7 +46,8 @@
       </main>
 
       <footer class="footer">
-        <span>运行于本地 · 远程来源：<strong id="serviceName">加载中...</strong></span>
+        <span>前端本地运行 · 当前适配器：<strong id="footerAdapterName">加载中...</strong></span>
+        <span id="footerAdapterEndpoint" class="footer-subtext"></span>
       </footer>
     </div>
 
@@ -56,6 +64,6 @@
       </article>
     </template>
 
-    <script src="/app.js" type="module"></script>
+    <script src="./app.js" type="module"></script>
   </body>
 </html>
