@@ -1,0 +1,19 @@
+# Air 临时文件
+tmp/
+*.log
+
+# 编译输出
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试输出
+*.test
+*.out
+
+# Go workspace file
+go.work
+

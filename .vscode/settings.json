@@ -1,0 +1,32 @@
+{
+  // Go 相关配置
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "golang.go"
+  },
+  
+  // Go 工具配置
+  "go.formatTool": "goimports",
+  "go.lintOnSave": "workspace",
+  "go.buildOnSave": "workspace",
+  "go.vetOnSave": "workspace",
+  "go.coverOnSave": false,
+  
+  // 自动保存配置
+  "files.autoSave": "onFocusChange",
+  
+  // 排除不必要的文件
+  "files.exclude": {
+    "**/tmp": true,
+    "**/.DS_Store": true
+  },
+  
+  "files.watcherExclude": {
+    "**/tmp/**": true,
+    "**/node_modules/**": true
+  }
+}
+

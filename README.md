@@ -19,9 +19,33 @@
 
 ```
 .
-├── backend/               # Go 后端服务（提供 JSON API）
+├── backend/               # Go 后端服务
+│   ├── cmd/
+│   │   └── server/
+│   │       └── main.go   # 程序入口
+│   ├── internal/
+│   │   ├── config/
+│   │   │   └── config.go         # 配置和常量
+│   │   ├── models/
+│   │   │   └── models.go         # 数据模型和接口
+│   │   ├── service/
+│   │   │   ├── service.go        # HTTP API 服务
+│   │   │   └── errors.go         # 错误类型
+│   │   ├── registry/
+│   │   │   └── registry.go       # 适配器注册管理
+│   │   ├── adapters/
+│   │   │   ├── apibay.go         # APIBay 适配器
+│   │   │   └── sample.go         # 本地示例适配器
+│   │   └── utils/
+│   │       ├── magnet.go         # 磁力链接处理
+│   │       └── helpers.go        # 工具函数
+│   ├── go.mod            # Go 模块定义
+│   ├── Makefile          # 开发命令
+│   └── .air.toml         # 热重载配置
 ├── frontend/              # 静态前端页面（HTML/CSS/JS）
 ├── data/                  # 本地示例数据（备用适配器使用）
+├── .vscode/
+│   └── settings.json     # VS Code 配置
 ├── package.json           # 前端开发依赖 & 脚本
 ├── package-lock.json
 └── README.md
@@ -32,12 +56,36 @@
 ### 快速启动
 
 ```bash
-# 在项目根目录
 cd backend
-GO111MODULE=on go run .
+
+# 方式一：开发模式（推荐）- 代码保存后自动重启 🔥
+make dev
+
+# 方式二：普通运行
+make run
+
+# 方式三：直接使用 Go 命令
+go run .
 ```
 
 默认监听 `http://localhost:3001`，提供 `GET /api/search`、`GET /api/adapters`、`GET /api/health` 三个接口。
+
+### 开发模式说明
+
+使用 `make dev` 启动后，修改任何 `.go` 文件并保存，服务会自动重新编译和重启。同时 VS Code/Cursor 会在保存时：
+- ✨ 自动格式化代码
+- 🔄 自动整理 import
+- 🐛 自动显示 lint 错误
+
+### 其他命令
+
+```bash
+make build         # 编译二进制文件
+make fmt           # 手动格式化代码
+make test          # 运行测试
+make clean         # 清理临时文件
+make install-tools # 安装开发工具（air、goimports）
+```
 
 ### 环境变量
 
@@ -85,10 +133,32 @@ localStorage.setItem('magnetApiBase', 'http://your-backend-host:3001');
 
 所有接口均返回 UTF-8 编码的 JSON 数据，并允许跨域访问，方便单独部署前后端。
 
+## 项目结构说明
+
+### 后端架构
+
+采用标准的 Go 项目布局：
+
+- **`cmd/server/`** - 应用程序入口点
+- **`internal/`** - 私有应用和库代码
+  - **`config/`** - 配置管理
+  - **`models/`** - 数据模型和接口定义
+  - **`service/`** - HTTP API 服务层
+  - **`registry/`** - 适配器注册和管理
+  - **`adapters/`** - 各种搜索源适配器实现
+  - **`utils/`** - 通用工具函数
+
+这种结构的优势：
+- ✅ 清晰的职责分离
+- ✅ 易于测试和维护
+- ✅ 方便扩展新功能
+- ✅ 符合 Go 社区最佳实践
+
 ## 扩展提示
 
-- 新增适配器时，建议在后台统一转换为 `SearchResult` 结构，保持前端无感知
+- 新增适配器时，在 `internal/adapters/` 目录下创建新文件，实现 `models.Adapter` 接口
+- 所有业务逻辑都在 `internal/` 目录下，保证代码封装性
 - `data/sampleResults.json` 仅作为演示，可替换成本地合法数据
-- 如果需要持久化后端服务，可将 `go run .` 替换为 `go build` 后执行生成的二进制
+- 如果需要持久化后端服务，运行 `make build` 后执行生成的二进制文件
 
 祝你使用愉快！
