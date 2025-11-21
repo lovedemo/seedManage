@@ -35,6 +35,7 @@
 │   │   │   └── registry.go       # 适配器注册管理
 │   │   ├── adapters/
 │   │   │   ├── apibay.go         # APIBay 适配器
+│   │   │   ├── nyaa.go           # Nyaa 适配器
 │   │   │   └── sample.go         # 本地示例适配器
 │   │   └── utils/
 │   │       ├── magnet.go         # 磁力链接处理
@@ -93,6 +94,7 @@ make install-tools # 安装开发工具（air、goimports）
 | --- | --- | --- |
 | `PORT` | `3001` | 后端服务监听端口 |
 | `MAGNET_SEARCH_ENDPOINT` | `https://apibay.org/q.php` | The Pirate Bay（apibay）公开 API 地址 |
+| `NYAA_ENDPOINT` | `https://nyaaapi.onrender.com/nyaa` | Nyaa API 地址 |
 | `SAMPLE_DATA_FILE` | `data/sampleResults.json` | 本地示例数据路径（JSON 数组） |
 | `DEFAULT_ADAPTER` | `apibay` | 默认使用的适配器 ID |
 | `FALLBACK_ADAPTER` | `sample` | 备用适配器 ID（主适配器失败或无结果时触发） |
@@ -121,6 +123,7 @@ localStorage.setItem('magnetApiBase', 'http://your-backend-host:3001');
 | 适配器 ID | 名称 | 描述 |
 | --- | --- | --- |
 | `apibay` | The Pirate Bay (apibay.org) | 通过公开 API 获取实时磁力资源数据 |
+| `nyaa` | Nyaa | 通过 nyaaapi.onrender.com 提供的 API 检索资源 |
 | `sample` | 本地示例数据 | 读取 `data/sampleResults.json` 提供的内置演示数据 |
 
 > 页面左下角会显示当前适配器的简介和来源，切换选项后立即生效。
