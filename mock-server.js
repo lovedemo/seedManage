@@ -178,10 +178,28 @@ const server = http.createServer((req, res) => {
         meta: meta
       }));
     } else if (pathname === '/api/history') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        history: []
-      }));
+      if (req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          history: []
+        }));
+      } else if (req.method === 'DELETE') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: '请提供要删除的历史记录ID。' }));
+          return;
+        }
+        
+        // Mock deletion - always success for demo
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          message: '历史记录已删除'
+        }));
+      } else {
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Method not allowed' }));
+      }
     } else {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));

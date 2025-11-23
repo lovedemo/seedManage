@@ -339,7 +339,10 @@ const renderResults = (items = [], meta = {}) => {
     actionEl.href = item.magnet || '#';
     openEl.href = item.magnet || '#';
     actionEl.dataset.magnet = item.magnet || '';
+    openEl.dataset.magnet = item.magnet || '';
     actionEl.textContent = '复制磁力链接';
+    openEl.textContent = '打开';
+    
     actionEl.addEventListener('click', async (event) => {
       event.preventDefault();
       const { magnet } = event.currentTarget.dataset;
@@ -351,6 +354,13 @@ const renderResults = (items = [], meta = {}) => {
       } catch (error) {
         window.open(magnet, '_blank');
       }
+    });
+
+    openEl.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const { magnet } = event.currentTarget.dataset;
+      if (!magnet) return;
+      window.open(magnet, '_blank');
     });
 
     fragment.appendChild(card);
@@ -421,9 +431,11 @@ const renderHistory = (items = []) => {
     const emptyEl = card.querySelector('.history-card__empty');
     const resultsContainer = card.querySelector('.history-card__results');
     const toggleBtn = card.querySelector('.history-card__toggle');
+    const deleteBtn = card.querySelector('.history-card__delete');
 
     if (cardEl) {
       cardEl.dataset.expanded = 'false';
+      cardEl.dataset.id = entry?.id || '';
     }
 
     if (queryEl) {
@@ -467,18 +479,21 @@ const renderHistory = (items = []) => {
         contentEl.appendChild(titleEl);
         contentEl.appendChild(metaInfoEl);
 
-        const actionBtn = document.createElement('button');
-        actionBtn.type = 'button';
-        actionBtn.className = 'history-result__action';
-        actionBtn.textContent = '复制';
-        actionBtn.dataset.magnet = result?.magnet || '';
+        const actionContainerEl = document.createElement('div');
+        actionContainerEl.className = 'history-result__actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'history-result__action';
+        copyBtn.textContent = '复制';
+        copyBtn.dataset.magnet = result?.magnet || '';
         if (!result?.magnet) {
-          actionBtn.disabled = true;
-          actionBtn.textContent = '无磁链';
+          copyBtn.disabled = true;
+          copyBtn.textContent = '无磁链';
         }
 
-        actionBtn.addEventListener('click', async () => {
-          const { magnet } = actionBtn.dataset;
+        copyBtn.addEventListener('click', async () => {
+          const { magnet } = copyBtn.dataset;
           if (!magnet) return;
           try {
             await navigator.clipboard.writeText(magnet);
@@ -489,9 +504,27 @@ const renderHistory = (items = []) => {
           }
         });
 
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'history-result__action history-result__action--open';
+        openBtn.textContent = '打开';
+        openBtn.dataset.magnet = result?.magnet || '';
+        if (!result?.magnet) {
+          openBtn.disabled = true;
+        }
+
+        openBtn.addEventListener('click', async () => {
+          const { magnet } = openBtn.dataset;
+          if (!magnet) return;
+          window.open(magnet, '_blank');
+        });
+
+        actionContainerEl.appendChild(copyBtn);
+        actionContainerEl.appendChild(openBtn);
+
         itemEl.appendChild(indexEl);
         itemEl.appendChild(contentEl);
-        itemEl.appendChild(actionBtn);
+        itemEl.appendChild(actionContainerEl);
         resultsContainer.appendChild(itemEl);
       });
     }
@@ -502,6 +535,39 @@ const renderHistory = (items = []) => {
         const nextState = !expanded;
         cardEl.dataset.expanded = String(nextState);
         toggleBtn.textContent = nextState ? '收起' : '展开';
+      });
+    }
+
+    if (deleteBtn && cardEl) {
+      deleteBtn.addEventListener('click', async () => {
+        const historyId = cardEl.dataset.id;
+        if (!historyId) {
+          setHistoryStatus('无法删除：历史记录ID缺失', 'error');
+          return;
+        }
+
+        if (!confirm('确定要删除这条历史记录吗？')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/api/history?id=${encodeURIComponent(historyId)}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `删除失败，状态码：${response.status}`);
+          }
+
+          setHistoryStatus('历史记录已删除');
+          setTimeout(() => setHistoryStatus(''), 1800);
+          
+          // 重新加载历史记录
+          requestHistoryRefresh();
+        } catch (error) {
+          setHistoryStatus(`删除失败：${error.message}`, 'error');
+        }
       });
     }
 

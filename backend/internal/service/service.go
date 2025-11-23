@@ -59,7 +59,7 @@ func (s *APIService) withJSON(handler jsonHandler) http.HandlerFunc {
 func (s *APIService) cors(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS")
         w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
         if r.Method == http.MethodOptions {
             w.WriteHeader(http.StatusNoContent)
@@ -95,22 +95,44 @@ func (s *APIService) handleAdapters(w http.ResponseWriter, r *http.Request) erro
     return s.writeJSON(w, payload, http.StatusOK)
 }
 
-// handleHistory 返回搜索历史列表
+// handleHistory 返回搜索历史列表或删除历史记录
 func (s *APIService) handleHistory(w http.ResponseWriter, r *http.Request) error {
-    if r.Method != http.MethodGet {
+    switch r.Method {
+    case http.MethodGet:
+        records := []history.Entry{}
+        if s.history != nil {
+            records = s.history.List()
+        }
+
+        payload := map[string]any{
+            "history": records,
+        }
+
+        return s.writeJSON(w, payload, http.StatusOK)
+    
+    case http.MethodDelete:
+        id := strings.TrimSpace(r.URL.Query().Get("id"))
+        if id == "" {
+            return ClientError{Message: "请提供要删除的历史记录ID。"}
+        }
+
+        if s.history == nil {
+            return ClientError{Message: "历史记录功能不可用。"}
+        }
+
+        if err := s.history.Delete(id); err != nil {
+            return ClientError{Message: err.Error()}
+        }
+
+        payload := map[string]any{
+            "message": "历史记录已删除",
+        }
+
+        return s.writeJSON(w, payload, http.StatusOK)
+    
+    default:
         return NewMethodNotAllowedError(r.Method)
     }
-
-    records := []history.Entry{}
-    if s.history != nil {
-        records = s.history.List()
-    }
-
-    payload := map[string]any{
-        "history": records,
-    }
-
-    return s.writeJSON(w, payload, http.StatusOK)
 }
 
 // handleSearch 处理搜索请求
