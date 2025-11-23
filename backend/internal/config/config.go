@@ -14,6 +14,7 @@ const (
     PortEnv            = "PORT"
     ApibayEndpointEnv  = "MAGNET_SEARCH_ENDPOINT"
     NyaaEndpointEnv    = "NYAA_ENDPOINT"
+    SukebeiEndpointEnv = "SUKEBEI_ENDPOINT"
     SampleDataEnv      = "SAMPLE_DATA_FILE"
 )
 

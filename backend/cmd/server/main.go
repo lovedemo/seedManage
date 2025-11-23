@@ -18,6 +18,7 @@ func main() {
     port := utils.Getenv(config.PortEnv, "3001")
     apibayEndpoint := utils.Getenv(config.ApibayEndpointEnv, "https://apibay.org/q.php")
     nyaaEndpoint := utils.Getenv(config.NyaaEndpointEnv, "https://nyaaapi.onrender.com/nyaa")
+    sukebeiEndpoint := utils.Getenv(config.SukebeiEndpointEnv, "https://nyaaapi.onrender.com/sukebei")
     sampleDataPath := utils.Getenv(config.SampleDataEnv, "data/sampleResults.json")
     defaultAdapter := utils.Getenv(config.DefaultAdapterEnv, "apibay")
     fallbackAdapter := utils.Getenv(config.FallbackAdapterEnv, "sample")
@@ -30,6 +31,10 @@ func main() {
 
     // 注册 Nyaa 适配器
     reg.Register(adapters.NewNyaa(nyaaEndpoint, config.BaseTrackers))
+
+    
+    // 注册 Sukebei 适配器
+    reg.Register(adapters.NewSukebei(sukebeiEndpoint, config.BaseTrackers))
 
     // 注册本地示例适配器（如果可用）
     if sampleAdapter, err := adapters.NewSample(sampleDataPath); err != nil {
