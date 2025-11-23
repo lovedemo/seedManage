@@ -235,6 +235,7 @@ const renderResults = (items = [], meta = {}) => {
     const badgeEl = card.querySelector('.card-badge');
     const metaEl = card.querySelector('.card-meta');
     const actionEl = card.querySelector('.card-action');
+    const openEl = card.querySelector('.card-open')
 
     titleEl.textContent = item.title || '未命名资源';
     badgeEl.textContent = item.category || (meta.mode === 'magnet' ? '磁力链接' : adapterLabel);
@@ -280,6 +281,7 @@ const renderResults = (items = [], meta = {}) => {
     });
 
     actionEl.href = item.magnet || '#';
+    openEl.href = item.magnet || '#';
     actionEl.dataset.magnet = item.magnet || '';
     actionEl.textContent = '复制磁力链接';
     actionEl.addEventListener('click', async (event) => {
