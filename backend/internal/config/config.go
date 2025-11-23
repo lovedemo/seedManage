@@ -9,12 +9,13 @@ var BaseTrackers = []string{
 
 // 环境变量常量
 const (
-    DefaultAdapterEnv   = "DEFAULT_ADAPTER"
-    FallbackAdapterEnv  = "FALLBACK_ADAPTER"
-    PortEnv             = "PORT"
-    ApibayEndpointEnv   = "MAGNET_SEARCH_ENDPOINT"
-    NyaaEndpointEnv     = "NYAA_ENDPOINT"
-    SampleDataEnv       = "SAMPLE_DATA_FILE"
+    DefaultAdapterEnv    = "DEFAULT_ADAPTER"
+    FallbackAdapterEnv   = "FALLBACK_ADAPTER"
+    PortEnv              = "PORT"
+    ApibayEndpointEnv    = "MAGNET_SEARCH_ENDPOINT"
+    NyaaEndpointEnv      = "NYAA_ENDPOINT"
+    SukebeiEndpointEnv   = "SUKEBEI_ENDPOINT"
+    SampleDataEnv        = "SAMPLE_DATA_FILE"
     SearchHistoryFileEnv = "SEARCH_HISTORY_FILE"
 )
 
