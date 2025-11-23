@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -49,3 +50,35 @@ func Getenv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// ResolvePath 尝试在当前或上级目录解析相对路径
+func ResolvePath(path string) string {
+	cleaned := strings.TrimSpace(path)
+	if cleaned == "" || filepath.IsAbs(cleaned) {
+		return cleaned
+	}
+
+	if _, err := os.Stat(cleaned); err == nil {
+		return cleaned
+	}
+
+	dir := filepath.Dir(cleaned)
+	if dir != "." {
+		if _, err := os.Stat(dir); err == nil {
+			return cleaned
+		}
+	}
+
+	alt := filepath.Join("..", cleaned)
+	if _, err := os.Stat(alt); err == nil {
+		return alt
+	}
+
+	altDir := filepath.Dir(alt)
+	if altDir != "." {
+		if _, err := os.Stat(altDir); err == nil {
+			return alt
+		}
+	}
+
+	return cleaned
+}

@@ -125,7 +125,7 @@ localStorage.setItem('magnetApiBase', 'http://your-backend-host:3001');
 | --- | --- | --- |
 | `apibay` | The Pirate Bay (apibay.org) | 通过公开 API 获取实时磁力资源数据 |
 | `nyaa` | Nyaa | 通过 nyaaapi.onrender.com 提供的 API 检索资源 |
-| `sukebei` | Sukebei | 通过 nyaaapi.onrender.com 提供的 API 检索资源 |
+| `sukebei` | Sukebei | 通过 nyaaapi.onrender.com 的 Sukebei 数据源检索资源 |
 | `sample` | 本地示例数据 | 读取 `data/sampleResults.json` 提供的内置演示数据 |
 
 > 页面左下角会显示当前适配器的简介和来源，切换选项后立即生效。
