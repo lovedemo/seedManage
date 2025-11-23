@@ -639,9 +639,9 @@ const setView = (view) => {
   Object.entries(viewSections).forEach(([key, section]) => {
     if (!section) return;
     if (key === view) {
-      section.removeAttribute('hidden');
+      section.style.display = 'block'
     } else {
-      section.setAttribute('hidden', 'true');
+      section.style.display = 'none'
     }
   });
 
