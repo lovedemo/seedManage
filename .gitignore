@@ -22,3 +22,6 @@ backend/bin/
 *.exe
 *.test
 *.out
+
+# Runtime data
+data/searchHistory.json

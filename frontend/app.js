@@ -3,11 +3,23 @@ const input = document.getElementById('searchInput');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
 const cardTemplate = document.getElementById('cardTemplate');
+const historyCardTemplate = document.getElementById('historyCardTemplate');
 const searchButton = document.getElementById('searchButton');
 const adapterSelect = document.getElementById('adapterSelect');
 const adapterDescriptionEl = document.getElementById('adapterDescription');
 const footerAdapterNameEl = document.getElementById('footerAdapterName');
 const footerAdapterEndpointEl = document.getElementById('footerAdapterEndpoint');
+const navTabs = document.querySelectorAll('[data-view]');
+const homeSection = document.getElementById('homeSection');
+const historySection = document.getElementById('historySection');
+const historyListEl = document.getElementById('historyList');
+const historyStatusEl = document.getElementById('historyStatus');
+const historyRefreshButton = document.getElementById('historyRefreshButton');
+
+const viewSections = {
+  home: homeSection,
+  history: historySection
+};
 
 const STORAGE_KEYS = {
   adapter: 'magnetPreferredAdapter',
@@ -30,6 +42,16 @@ const API_BASE = (() => {
 const state = {
   adapters: [],
   selectedAdapterId: localStorage.getItem(STORAGE_KEYS.adapter) || ''
+};
+
+const viewState = {
+  current: 'home'
+};
+
+const historyState = {
+  items: [],
+  isLoading: false,
+  needsRefresh: true
 };
 
 const formatNumber = (value) => {
@@ -57,6 +79,22 @@ const formatDate = (value) => {
   }
 };
 
+const formatDateTime = (value) => {
+  if (!value) return '未知时间';
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).format(new Date(value));
+  } catch (error) {
+    return value;
+  }
+};
+
 const setStatus = (message, variant = 'info') => {
   if (!message) {
     statusEl.hidden = true;
@@ -72,6 +110,25 @@ const setStatus = (message, variant = 'info') => {
     statusEl.classList.add('error');
   } else {
     statusEl.classList.remove('error');
+  }
+};
+
+const setHistoryStatus = (message, variant = 'info') => {
+  if (!historyStatusEl) return;
+  if (!message) {
+    historyStatusEl.hidden = true;
+    historyStatusEl.textContent = '';
+    historyStatusEl.classList.remove('error');
+    return;
+  }
+
+  historyStatusEl.hidden = false;
+  historyStatusEl.textContent = message;
+
+  if (variant === 'error') {
+    historyStatusEl.classList.add('error');
+  } else {
+    historyStatusEl.classList.remove('error');
   }
 };
 
@@ -244,6 +301,236 @@ const renderResults = (items = [], meta = {}) => {
   resultsEl.appendChild(fragment);
 };
 
+const getHistoryAdapterLabel = (meta = {}) => {
+  if (!meta) return '未知适配器';
+  if (meta.fallbackUsed) {
+    return `${meta.fallbackAdapterName || meta.fallbackAdapter || '备用适配器'}（回退）`;
+  }
+  return meta.adapterName || meta.adapter || '未知适配器';
+};
+
+const formatHistoryResultMeta = (result = {}) => {
+  const parts = [];
+
+  if (result.sizeLabel) {
+    parts.push(result.sizeLabel);
+  } else if (result.size) {
+    parts.push(`${result.size} B`);
+  }
+
+  const hasSeederInfo = result.seeders !== null && result.seeders !== undefined;
+  const hasLeecherInfo = result.leechers !== null && result.leechers !== undefined;
+  if (hasSeederInfo || hasLeecherInfo) {
+    const seeders = hasSeederInfo ? formatNumber(result.seeders) : '未知';
+    const leechers = hasLeecherInfo ? formatNumber(result.leechers) : '未知';
+    parts.push(`做种/下载 ${seeders}/${leechers}`);
+  }
+
+  if (result.category) {
+    parts.push(result.category);
+  }
+
+  if (result.source) {
+    parts.push(result.source);
+  }
+
+  return parts.join(' · ');
+};
+
+const renderHistory = (items = []) => {
+  if (!historyListEl || !historyCardTemplate) return;
+
+  historyListEl.innerHTML = '';
+
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'history-panel__subtitle';
+    empty.textContent = '暂无历史记录。';
+    historyListEl.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  items.forEach((entry) => {
+    const card = historyCardTemplate.content.cloneNode(true);
+    const cardEl = card.querySelector('.history-card');
+    const queryEl = card.querySelector('.history-card__query');
+    const metaEl = card.querySelector('.history-card__meta');
+    const emptyEl = card.querySelector('.history-card__empty');
+    const resultsContainer = card.querySelector('.history-card__results');
+    const toggleBtn = card.querySelector('.history-card__toggle');
+
+    if (cardEl) {
+      cardEl.dataset.expanded = 'false';
+    }
+
+    if (queryEl) {
+      queryEl.textContent = entry?.query || '（未提供搜索词）';
+    }
+
+    if (metaEl) {
+      const createdLabel = formatDateTime(entry?.createdAt);
+      const adapterLabel = getHistoryAdapterLabel(entry?.meta);
+      const modeLabel = (entry?.meta?.mode || entry?.mode) === 'magnet' ? '磁链解析' : '关键词搜索';
+      const countLabel = `${Array.isArray(entry?.results) ? entry.results.length : 0} 条结果`;
+      const summary = [createdLabel, adapterLabel, modeLabel, countLabel].filter(Boolean).join(' • ');
+      metaEl.textContent = summary;
+    }
+
+    const results = Array.isArray(entry?.results) ? entry.results : [];
+    if (emptyEl) {
+      emptyEl.hidden = results.length > 0;
+    }
+
+    if (resultsContainer && results.length) {
+      results.forEach((result, index) => {
+        const itemEl = document.createElement('li');
+        itemEl.className = 'history-result';
+
+        const indexEl = document.createElement('span');
+        indexEl.className = 'history-result__index';
+        indexEl.textContent = String(index + 1).padStart(2, '0');
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'history-result__content';
+
+        const titleEl = document.createElement('p');
+        titleEl.className = 'history-result__title';
+        titleEl.textContent = result?.title || '未命名资源';
+
+        const metaInfoEl = document.createElement('p');
+        metaInfoEl.className = 'history-result__meta';
+        metaInfoEl.textContent = formatHistoryResultMeta(result) || '暂无额外信息';
+
+        contentEl.appendChild(titleEl);
+        contentEl.appendChild(metaInfoEl);
+
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.className = 'history-result__action';
+        actionBtn.textContent = '复制';
+        actionBtn.dataset.magnet = result?.magnet || '';
+        if (!result?.magnet) {
+          actionBtn.disabled = true;
+          actionBtn.textContent = '无磁链';
+        }
+
+        actionBtn.addEventListener('click', async () => {
+          const { magnet } = actionBtn.dataset;
+          if (!magnet) return;
+          try {
+            await navigator.clipboard.writeText(magnet);
+            setHistoryStatus('磁力链接已复制到剪贴板。');
+            setTimeout(() => setHistoryStatus(''), 1800);
+          } catch (error) {
+            window.open(magnet, '_blank');
+          }
+        });
+
+        itemEl.appendChild(indexEl);
+        itemEl.appendChild(contentEl);
+        itemEl.appendChild(actionBtn);
+        resultsContainer.appendChild(itemEl);
+      });
+    }
+
+    if (toggleBtn && cardEl) {
+      toggleBtn.addEventListener('click', () => {
+        const expanded = cardEl.dataset.expanded === 'true';
+        const nextState = !expanded;
+        cardEl.dataset.expanded = String(nextState);
+        toggleBtn.textContent = nextState ? '收起' : '展开';
+      });
+    }
+
+    fragment.appendChild(card);
+  });
+
+  historyListEl.appendChild(fragment);
+};
+
+const loadHistory = async ({ force = false } = {}) => {
+  if (!historyListEl || !historyCardTemplate) return;
+  if (historyState.isLoading) return;
+  if (!force && !historyState.needsRefresh) {
+    return;
+  }
+
+  historyState.isLoading = true;
+  historyState.needsRefresh = false;
+  setHistoryStatus('正在加载历史记录…');
+  if (historyRefreshButton) {
+    historyRefreshButton.disabled = true;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/api/history`);
+    if (!response.ok) {
+      throw new Error(`后端返回状态 ${response.status}`);
+    }
+    const data = await response.json();
+    const items = Array.isArray(data.history) ? data.history : [];
+    historyState.items = items;
+    renderHistory(items);
+    if (!items.length) {
+      setHistoryStatus('暂无历史记录。');
+    } else {
+      setHistoryStatus('');
+    }
+  } catch (error) {
+    setHistoryStatus(`无法加载历史记录：${error.message}`, 'error');
+  } finally {
+    historyState.isLoading = false;
+    if (historyRefreshButton) {
+      historyRefreshButton.disabled = false;
+    }
+    if (historyState.needsRefresh) {
+      loadHistory({ force: true });
+    }
+  }
+};
+
+const requestHistoryRefresh = () => {
+  historyState.needsRefresh = true;
+  if (viewState.current === 'history' && !historyState.isLoading) {
+    loadHistory({ force: true });
+  }
+};
+
+const setView = (view) => {
+  if (!viewSections[view]) {
+    return;
+  }
+
+  viewState.current = view;
+
+  navTabs.forEach((tab) => {
+    tab.classList.toggle('is-active', tab.dataset.view === view);
+  });
+
+  Object.entries(viewSections).forEach(([key, section]) => {
+    if (!section) return;
+    if (key === view) {
+      section.removeAttribute('hidden');
+    } else {
+      section.setAttribute('hidden', 'true');
+    }
+  });
+
+  if (view === 'history') {
+    if (historyState.needsRefresh) {
+      loadHistory({ force: true });
+    } else if (historyState.items.length) {
+      renderHistory(historyState.items);
+      setHistoryStatus('');
+    } else {
+      renderHistory([]);
+      setHistoryStatus('暂无历史记录。');
+    }
+  }
+};
+
 const performSearch = async (query) => {
   setStatus('正在搜索，请稍候…');
   resultsEl.innerHTML = '';
@@ -274,6 +561,7 @@ const performSearch = async (query) => {
     }
 
     renderResults(data.results, meta);
+    requestHistoryRefresh();
 
     if (meta.mode === 'magnet') {
       setStatus('已生成磁力卡片，可复制链接');
@@ -324,6 +612,21 @@ form.addEventListener('submit', (event) => {
   performSearch(query);
 });
 
+navTabs.forEach((tab) => {
+  tab.addEventListener('click', (event) => {
+    const { view } = event.currentTarget.dataset;
+    setView(view || 'home');
+  });
+});
+
+if (historyRefreshButton) {
+  historyRefreshButton.addEventListener('click', () => {
+    historyState.needsRefresh = true;
+    loadHistory({ force: true });
+  });
+}
+
+setView('home');
 fetchAdapters();
 
 console.info('[magnet-search] 当前后端 API 地址：%s', API_BASE);

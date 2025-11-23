@@ -8,6 +8,7 @@ import (
 
     "github.com/seedmanage/backend/internal/adapters"
     "github.com/seedmanage/backend/internal/config"
+    "github.com/seedmanage/backend/internal/history"
     "github.com/seedmanage/backend/internal/registry"
     "github.com/seedmanage/backend/internal/service"
     "github.com/seedmanage/backend/internal/utils"
@@ -18,7 +19,8 @@ func main() {
     port := utils.Getenv(config.PortEnv, "3001")
     apibayEndpoint := utils.Getenv(config.ApibayEndpointEnv, "https://apibay.org/q.php")
     nyaaEndpoint := utils.Getenv(config.NyaaEndpointEnv, "https://nyaaapi.onrender.com/nyaa")
-    sampleDataPath := utils.Getenv(config.SampleDataEnv, "data/sampleResults.json")
+    sampleDataPath := utils.ResolvePath(utils.Getenv(config.SampleDataEnv, "data/sampleResults.json"))
+    historyFilePath := utils.ResolvePath(utils.Getenv(config.SearchHistoryFileEnv, "data/searchHistory.json"))
     defaultAdapter := utils.Getenv(config.DefaultAdapterEnv, "apibay")
     fallbackAdapter := utils.Getenv(config.FallbackAdapterEnv, "sample")
 
@@ -43,8 +45,13 @@ func main() {
         log.Printf("[backend] 适配器配置问题: %v", err)
     }
 
+    historyStore, err := history.NewStore(historyFilePath, history.DefaultHistoryLimit, history.DefaultResultsPerEntry)
+    if err != nil {
+        log.Fatalf("[backend] 无法初始化历史记录存储: %v", err)
+    }
+
     // 创建 API 服务
-    api := service.New(reg)
+    api := service.New(reg, historyStore)
 
     // 配置 HTTP 服务器
     srv := &http.Server{

@@ -13,35 +13,56 @@
         <p class="subtitle">输入关键字或粘贴磁力链接，快速获取预览卡片。</p>
       </header>
 
+      <nav class="nav-tabs" aria-label="页面导航">
+        <button type="button" class="nav-tab is-active" data-view="home">首页</button>
+        <button type="button" class="nav-tab" data-view="history">历史列表</button>
+      </nav>
+
       <main>
-        <section class="search-panel">
-          <form id="searchForm" class="search-form">
-            <label for="searchInput" class="search-label">搜索关键字 / 磁力链接</label>
-            <div class="search-input-group">
-              <input
-                id="searchInput"
-                name="query"
-                type="text"
-                placeholder="例如：Ubuntu ISO 或 magnet:?xt=..."
-                autocomplete="off"
-                required
-              />
-              <button type="submit" id="searchButton">搜索</button>
-            </div>
-            <div class="adapter-switcher">
-              <label for="adapterSelect" class="adapter-label">数据源</label>
-              <select id="adapterSelect" name="adapter">
-                <option value="" disabled selected>加载中...</option>
-              </select>
-              <p class="adapter-description" id="adapterDescription"></p>
-            </div>
-          </form>
-          <p class="helper">提示：粘贴磁链可直接生成卡片，不会请求远程服务。可在下方选择不同磁力搜索适配器。</p>
+        <section id="homeSection" class="view-section" aria-label="磁力搜索">
+          <section class="search-panel">
+            <form id="searchForm" class="search-form">
+              <label for="searchInput" class="search-label">搜索关键字 / 磁力链接</label>
+              <div class="search-input-group">
+                <input
+                  id="searchInput"
+                  name="query"
+                  type="text"
+                  placeholder="例如：Ubuntu ISO 或 magnet:?xt=..."
+                  autocomplete="off"
+                  required
+                />
+                <button type="submit" id="searchButton">搜索</button>
+              </div>
+              <div class="adapter-switcher">
+                <label for="adapterSelect" class="adapter-label">数据源</label>
+                <select id="adapterSelect" name="adapter">
+                  <option value="" disabled selected>加载中...</option>
+                </select>
+                <p class="adapter-description" id="adapterDescription"></p>
+              </div>
+            </form>
+            <p class="helper">提示：粘贴磁链可直接生成卡片，不会请求远程服务。可在下方选择不同磁力搜索适配器。</p>
+          </section>
+
+          <section class="result-section" aria-live="polite">
+            <div id="status" class="status" hidden></div>
+            <div id="results" class="results-grid"></div>
+          </section>
         </section>
 
-        <section class="result-section" aria-live="polite">
-          <div id="status" class="status" hidden></div>
-          <div id="results" class="results-grid"></div>
+        <section id="historySection" class="view-section" aria-live="polite" hidden>
+          <div class="history-panel">
+            <div class="history-panel__header">
+              <div>
+                <h2>搜索历史</h2>
+                <p class="history-panel__subtitle">最多保存 50 条历史记录，每条记录保留最近 20 个结果。</p>
+              </div>
+              <button type="button" id="historyRefreshButton" class="ghost-button">刷新</button>
+            </div>
+            <div id="historyStatus" class="status" hidden></div>
+            <div id="historyList" class="history-list"></div>
+          </div>
         </section>
       </main>
 
@@ -61,6 +82,22 @@
         <footer class="card-footer">
           <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
         </footer>
+      </article>
+    </template>
+
+    <template id="historyCardTemplate">
+      <article class="history-card" data-expanded="false">
+        <header class="history-card__header">
+          <div>
+            <p class="history-card__query"></p>
+            <p class="history-card__meta"></p>
+          </div>
+          <button type="button" class="history-card__toggle">展开</button>
+        </header>
+        <div class="history-card__body">
+          <p class="history-card__empty" hidden>本次搜索没有结果。</p>
+          <ul class="history-card__results"></ul>
+        </div>
       </article>
     </template>
 
