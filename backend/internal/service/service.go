@@ -5,6 +5,7 @@ import (
     "fmt"
     "log"
     "net/http"
+    "strconv"
     "strings"
     "time"
 
@@ -123,6 +124,14 @@ func (s *APIService) handleSearch(w http.ResponseWriter, r *http.Request) error 
         return ClientError{Message: "请提供搜索关键字或磁力链接。"}
     }
 
+    // 解析分页参数
+    page := 1
+    if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+        if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+            page = p
+        }
+    }
+
     // 如果是磁力链接，直接解析并返回
     if strings.HasPrefix(strings.ToLower(query), "magnet:?") {
         result, err := utils.ParseMagnetLink(query)
@@ -152,7 +161,12 @@ func (s *APIService) handleSearch(w http.ResponseWriter, r *http.Request) error 
         return ClientError{Message: fmt.Sprintf("未知的适配器: %s", adapterID)}
     }
 
-    results, err := adapter.Search(r.Context(), query)
+    searchOptions := models.SearchOptions{
+        Query: query,
+        Page:  page,
+    }
+
+    results, err := adapter.SearchWithOptions(r.Context(), searchOptions)
 
     meta := models.SearchMeta{
         Mode:               "search",
@@ -161,22 +175,37 @@ func (s *APIService) handleSearch(w http.ResponseWriter, r *http.Request) error 
         AdapterDescription: adapter.Description(),
         AdapterEndpoint:    adapter.Endpoint(),
         ResultCount:        len(results),
+        CurrentPage:        page,
+        HasPrevPage:        page > 1,
     }
 
     if err != nil {
         meta.AdapterError = err.Error()
     }
 
+    // 尝试确定是否有下一页（基于返回的结果数量）
+    // 对于支持分页的适配器，如果返回的结果数量等于预期的页面大小，可能还有下一页
+    const expectedPageSize = 10
+    if len(results) >= expectedPageSize {
+        meta.HasNextPage = true
+    }
+
     // 如果主适配器失败或无结果，尝试备用适配器
     if (err != nil || len(results) == 0) {
         if fallback, ok := s.registry.Fallback(adapter.ID()); ok {
-            fallbackResults, fallbackErr := fallback.Search(r.Context(), query)
+            fallbackResults, fallbackErr := fallback.SearchWithOptions(r.Context(), searchOptions)
             if fallbackErr == nil && len(fallbackResults) > 0 {
                 results = fallbackResults
                 meta.ResultCount = len(results)
                 meta.FallbackUsed = true
                 meta.FallbackAdapter = fallback.ID()
                 meta.FallbackAdapterName = fallback.Name()
+                // 更新分页信息
+                if len(fallbackResults) >= expectedPageSize {
+                    meta.HasNextPage = true
+                } else {
+                    meta.HasNextPage = false
+                }
             } else if fallbackErr != nil {
                 meta.FallbackAdapter = fallback.ID()
                 meta.FallbackAdapterName = fallback.Name()

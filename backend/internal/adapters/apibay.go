@@ -1,38 +1,38 @@
 package adapters
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
-	"time"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "net/url"
+    "strconv"
+    "strings"
+    "time"
 
-	"github.com/seedmanage/backend/internal/models"
-	"github.com/seedmanage/backend/internal/utils"
+    "github.com/seedmanage/backend/internal/models"
+    "github.com/seedmanage/backend/internal/utils"
 )
 
 // APIBay 实现通过 apibay.org 进行搜索的适配器
 type APIBay struct {
-	endpoint string
-	headers  http.Header
-	client   *http.Client
-	trackers []string
+    endpoint string
+    headers  http.Header
+    client   *http.Client
+    trackers []string
 }
 
 // NewAPIBay 创建一个新的 APIBay 适配器
 func NewAPIBay(endpoint string, trackers []string) models.Adapter {
-	return &APIBay{
-		endpoint: endpoint,
-		headers: http.Header{
-			"User-Agent": []string{"magnetsearch-backend/1.0"},
-		},
-		client:   &http.Client{Timeout: 8 * time.Second},
-		trackers: append([]string(nil), trackers...),
-	}
+    return &APIBay{
+        endpoint: endpoint,
+        headers: http.Header{
+            "User-Agent": []string{"magnetsearch-backend/1.0"},
+        },
+        client:   &http.Client{Timeout: 8 * time.Second},
+        trackers: append([]string(nil), trackers...),
+    }
 }
 
 func (a *APIBay) ID() string          { return "apibay" }
@@ -42,100 +42,107 @@ func (a *APIBay) Endpoint() string    { return a.endpoint }
 
 // Search 执行搜索
 func (a *APIBay) Search(ctx context.Context, term string) ([]models.SearchResult, error) {
-	u, err := url.Parse(a.endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("invalid apibay endpoint: %w", err)
-	}
+    return a.SearchWithOptions(ctx, models.SearchOptions{Query: term, Page: 1})
+}
 
-	q := u.Query()
-	q.Set("q", term)
-	u.RawQuery = q.Encode()
+// SearchWithOptions 执行搜索，支持分页
+func (a *APIBay) SearchWithOptions(ctx context.Context, options models.SearchOptions) ([]models.SearchResult, error) {
+    u, err := url.Parse(a.endpoint)
+    if err != nil {
+        return nil, fmt.Errorf("invalid apibay endpoint: %w", err)
+    }
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = a.headers.Clone()
+    q := u.Query()
+    q.Set("q", options.Query)
+    // APIBay doesn't support pagination, but we'll pass the page parameter anyway
+    q.Set("page", strconv.Itoa(options.Page))
+    u.RawQuery = q.Encode()
 
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+    if err != nil {
+        return nil, err
+    }
+    req.Header = a.headers.Clone()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return nil, fmt.Errorf("remote service error: %s - %s", resp.Status, string(body))
-	}
+    resp, err := a.client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-	var payload []struct {
-		Name     string `json:"name"`
-		InfoHash string `json:"info_hash"`
-		Seeders  string `json:"seeders"`
-		Leechers string `json:"leechers"`
-		Size     string `json:"size"`
-		Added    string `json:"added"`
-		Category string `json:"category"`
-	}
+    if resp.StatusCode != http.StatusOK {
+        body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+        return nil, fmt.Errorf("remote service error: %s - %s", resp.Status, string(body))
+    }
 
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
+    var payload []struct {
+        Name     string `json:"name"`
+        InfoHash string `json:"info_hash"`
+        Seeders  string `json:"seeders"`
+        Leechers string `json:"leechers"`
+        Size     string `json:"size"`
+        Added    string `json:"added"`
+        Category string `json:"category"`
+    }
 
-	results := make([]models.SearchResult, 0, len(payload))
+    if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+        return nil, err
+    }
 
-	for _, item := range payload {
-		if item.InfoHash == "" || item.Name == "" {
-			continue
-		}
+    results := make([]models.SearchResult, 0, len(payload))
 
-		magnet := utils.BuildMagnetLink(item.InfoHash, item.Name, a.trackers)
+    for _, item := range payload {
+        if item.InfoHash == "" || item.Name == "" {
+            continue
+        }
 
-		var seedersPtr *int
-		if seeders, err := strconv.Atoi(item.Seeders); err == nil {
-			seedersPtr = utils.PtrInt(seeders)
-		}
+        magnet := utils.BuildMagnetLink(item.InfoHash, item.Name, a.trackers)
 
-		var leechersPtr *int
-		if leechers, err := strconv.Atoi(item.Leechers); err == nil {
-			leechersPtr = utils.PtrInt(leechers)
-		}
+        var seedersPtr *int
+        if seeders, err := strconv.Atoi(item.Seeders); err == nil {
+            seedersPtr = utils.PtrInt(seeders)
+        }
 
-		var sizePtr *int64
-		var sizeLabel string
-		if size, err := strconv.ParseInt(item.Size, 10, 64); err == nil && size > 0 {
-			sizePtr = utils.PtrInt64(size)
-			sizeLabel = utils.FormatSize(size)
-		}
+        var leechersPtr *int
+        if leechers, err := strconv.Atoi(item.Leechers); err == nil {
+            leechersPtr = utils.PtrInt(leechers)
+        }
 
-		var uploadedPtr *time.Time
-		if item.Added != "" {
-			if ts, err := strconv.ParseInt(item.Added, 10, 64); err == nil && ts > 0 {
-				t := time.Unix(ts, 0).UTC()
-				uploadedPtr = &t
-			}
-		}
+        var sizePtr *int64
+        var sizeLabel string
+        if size, err := strconv.ParseInt(item.Size, 10, 64); err == nil && size > 0 {
+            sizePtr = utils.PtrInt64(size)
+            sizeLabel = utils.FormatSize(size)
+        }
 
-		category := item.Category
-		if category == "0" || category == "" {
-			category = "未知"
-		}
+        var uploadedPtr *time.Time
+        if item.Added != "" {
+            if ts, err := strconv.ParseInt(item.Added, 10, 64); err == nil && ts > 0 {
+                t := time.Unix(ts, 0).UTC()
+                uploadedPtr = &t
+            }
+        }
 
-		results = append(results, models.SearchResult{
-			Title:     item.Name,
-			Magnet:    magnet,
-			InfoHash:  strings.ToUpper(item.InfoHash),
-			Trackers:  append([]string(nil), a.trackers...),
-			Seeders:   seedersPtr,
-			Leechers:  leechersPtr,
-			Size:      sizePtr,
-			SizeLabel: sizeLabel,
-			Uploaded:  uploadedPtr,
-			Category:  category,
-			Source:    a.ID(),
-		})
-	}
+        category := item.Category
+        if category == "0" || category == "" {
+            category = "未知"
+        }
 
-	return results, nil
+        results = append(results, models.SearchResult{
+            Title:     item.Name,
+            Magnet:    magnet,
+            InfoHash:  strings.ToUpper(item.InfoHash),
+            Trackers:  append([]string(nil), a.trackers...),
+            Seeders:   seedersPtr,
+            Leechers:  leechersPtr,
+            Size:      sizePtr,
+            SizeLabel: sizeLabel,
+            Uploaded:  uploadedPtr,
+            Category:  category,
+            Source:    a.ID(),
+        })
+    }
+
+    return results, nil
 }
 

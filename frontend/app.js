@@ -15,6 +15,14 @@ const historySection = document.getElementById('historySection');
 const historyListEl = document.getElementById('historyList');
 const historyStatusEl = document.getElementById('historyStatus');
 const historyRefreshButton = document.getElementById('historyRefreshButton');
+const paginationEl = document.getElementById('pagination');
+const prevPageBtn = document.getElementById('prevPageBtn');
+const nextPageBtn = document.getElementById('nextPageBtn');
+const currentPageEl = document.getElementById('currentPage');
+const totalPagesEl = document.getElementById('totalPages');
+const totalPagesValueEl = document.getElementById('totalPagesValue');
+const pageInput = document.getElementById('pageInput');
+const goToPageBtn = document.getElementById('goToPageBtn');
 
 const viewSections = {
   home: homeSection,
@@ -42,6 +50,12 @@ const API_BASE = (() => {
 const state = {
   adapters: [],
   selectedAdapterId: localStorage.getItem(STORAGE_KEYS.adapter) || ''
+};
+
+const searchState = {
+  currentQuery: '',
+  currentPage: 1,
+  meta: {}
 };
 
 const viewState = {
@@ -213,6 +227,47 @@ const fetchAdapters = async () => {
   }
 };
 
+const updatePaginationUI = (meta = {}) => {
+  const hasPagination = meta.currentPage !== undefined && meta.currentPage !== null;
+  
+  if (!hasPagination) {
+    // Show pagination controls with fallback mode (only page input)
+    paginationEl.hidden = false;
+    // Hide the navigation controls, show only the page input
+    const controls = paginationEl.querySelector('.pagination-controls');
+    const inputContainer = paginationEl.querySelector('.page-input-container');
+    if (controls) controls.style.display = 'none';
+    if (inputContainer) inputContainer.style.display = 'flex';
+    return;
+  }
+
+  paginationEl.hidden = false;
+  
+  // Show both navigation controls and page input
+  const controls = paginationEl.querySelector('.pagination-controls');
+  const inputContainer = paginationEl.querySelector('.page-input-container');
+  if (controls) controls.style.display = 'flex';
+  if (inputContainer) inputContainer.style.display = 'flex';
+  
+  // Update current page display
+  currentPageEl.textContent = meta.currentPage;
+  pageInput.value = meta.currentPage;
+  
+  // Update navigation buttons
+  prevPageBtn.disabled = !meta.hasPrevPage;
+  nextPageBtn.disabled = !meta.hasNextPage;
+  
+  // Update total pages display if available
+  if (meta.totalPages && meta.totalPages > 0) {
+    totalPagesEl.hidden = false;
+    totalPagesValueEl.textContent = meta.totalPages;
+    pageInput.max = meta.totalPages;
+  } else {
+    totalPagesEl.hidden = true;
+    pageInput.removeAttribute('max');
+  }
+};
+
 const renderResults = (items = [], meta = {}) => {
   resultsEl.innerHTML = '';
 
@@ -221,6 +276,7 @@ const renderResults = (items = [], meta = {}) => {
     empty.className = 'status';
     empty.textContent = '未找到匹配的结果，请尝试更换关键字。';
     resultsEl.appendChild(empty);
+    paginationEl.hidden = true;
     return;
   }
 
@@ -301,6 +357,9 @@ const renderResults = (items = [], meta = {}) => {
   });
 
   resultsEl.appendChild(fragment);
+  
+  // Update pagination UI
+  updatePaginationUI(meta);
 };
 
 const getHistoryAdapterLabel = (meta = {}) => {
@@ -533,7 +592,7 @@ const setView = (view) => {
   }
 };
 
-const performSearch = async (query) => {
+const performSearch = async (query, page = 1) => {
   setStatus('正在搜索，请稍候…');
   resultsEl.innerHTML = '';
   searchButton.disabled = true;
@@ -543,6 +602,9 @@ const performSearch = async (query) => {
     const params = new URLSearchParams({ q: query });
     if (state.selectedAdapterId) {
       params.set('adapter', state.selectedAdapterId);
+    }
+    if (page > 1) {
+      params.set('page', page.toString());
     }
 
     const response = await fetch(`${API_BASE}/api/search?${params.toString()}`);
@@ -554,6 +616,11 @@ const performSearch = async (query) => {
 
     const data = await response.json();
     const meta = data.meta || {};
+
+    // Update search state
+    searchState.currentQuery = query;
+    searchState.currentPage = page;
+    searchState.meta = meta;
 
     if (meta.adapter && getAdapterById(meta.adapter) && state.selectedAdapterId !== meta.adapter) {
       state.selectedAdapterId = meta.adapter;
@@ -611,7 +678,8 @@ form.addEventListener('submit', (event) => {
   event.preventDefault();
   const query = input.value.trim();
   if (!query) return;
-  performSearch(query);
+  // Reset to page 1 for new searches
+  performSearch(query, 1);
 });
 
 navTabs.forEach((tab) => {
@@ -625,6 +693,61 @@ if (historyRefreshButton) {
   historyRefreshButton.addEventListener('click', () => {
     historyState.needsRefresh = true;
     loadHistory({ force: true });
+  });
+}
+
+// Pagination event listeners
+if (prevPageBtn) {
+  prevPageBtn.addEventListener('click', () => {
+    if (searchState.currentQuery && searchState.currentPage > 1) {
+      performSearch(searchState.currentQuery, searchState.currentPage - 1);
+    }
+  });
+}
+
+if (nextPageBtn) {
+  nextPageBtn.addEventListener('click', () => {
+    if (searchState.currentQuery && searchState.meta.hasNextPage) {
+      performSearch(searchState.currentQuery, searchState.currentPage + 1);
+    }
+  });
+}
+
+if (goToPageBtn) {
+  goToPageBtn.addEventListener('click', () => {
+    if (!searchState.currentQuery) return;
+    
+    const targetPage = parseInt(pageInput.value, 10);
+    if (isNaN(targetPage) || targetPage < 1) {
+      setStatus('请输入有效的页码（大于0的整数）', 'error');
+      setTimeout(() => setStatus(''), 3000);
+      return;
+    }
+    
+    // If we know total pages, validate the target page
+    if (searchState.meta.totalPages && targetPage > searchState.meta.totalPages) {
+      setStatus(`页码不能超过总页数 ${searchState.meta.totalPages}`, 'error');
+      setTimeout(() => setStatus(''), 3000);
+      return;
+    }
+    
+    // Don't search if we're already on this page
+    if (targetPage === searchState.currentPage) {
+      setStatus(`当前已经是第 ${targetPage} 页`, 'error');
+      setTimeout(() => setStatus(''), 2000);
+      return;
+    }
+    
+    performSearch(searchState.currentQuery, targetPage);
+  });
+}
+
+// Allow Enter key in page input
+if (pageInput) {
+  pageInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+      goToPageBtn.click();
+    }
   });
 }
 
