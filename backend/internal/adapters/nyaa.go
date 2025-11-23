@@ -7,6 +7,7 @@ import (
     "io"
     "net/http"
     "net/url"
+    "strconv"
     "strings"
     "time"
 
@@ -41,14 +42,19 @@ func (n *Nyaa) Endpoint() string    { return n.endpoint }
 
 // Search 执行搜索
 func (n *Nyaa) Search(ctx context.Context, term string) ([]models.SearchResult, error) {
+    return n.SearchWithOptions(ctx, models.SearchOptions{Query: term, Page: 1})
+}
+
+// SearchWithOptions 执行搜索，支持分页
+func (n *Nyaa) SearchWithOptions(ctx context.Context, options models.SearchOptions) ([]models.SearchResult, error) {
     u, err := url.Parse(n.endpoint)
     if err != nil {
         return nil, fmt.Errorf("invalid nyaa endpoint: %w", err)
     }
 
     q := u.Query()
-    q.Set("q", term)
-    q.Set("page", "1")
+    q.Set("q", options.Query)
+    q.Set("page", strconv.Itoa(options.Page))
     u.RawQuery = q.Encode()
 
     req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
