@@ -1,13 +1,17 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
+setlocal EnableExtensions
 
 chcp 65001 >nul
 title 磁力搜索服务 - Windows 启动脚本
 
 set "ROOT=%~dp0"
 
+rem 防止某些环境（例如 cmd AutoRun）导致脚本被递归触发，从而无限打开窗口
+if defined MAGNET_SEARCH_BOOTSTRAPPED exit /b 0
+set "MAGNET_SEARCH_BOOTSTRAPPED=1"
+
 echo ================================================
-echo  🚀 启动磁力搜索服务（Windows）
+echo  启动磁力搜索服务（Windows）
 echo ================================================
 echo.
 echo 将会启动：
@@ -34,18 +38,24 @@ if errorlevel 1 (
   exit /b 1
 )
 
-for /f "usebackq delims=" %%G in (`go env GOPATH`) do set "GOPATH=%%G"
-if not defined GOPATH (
-  echo [错误] 无法获取 GOPATH，请检查 Go 安装是否正常。
-  echo.
-  pause
-  exit /b 1
+rem ---------- Resolve Go bin dir and add to PATH ----------
+for /f "usebackq delims=" %%G in (`go env GOBIN`) do set "GOBIN=%%G"
+if defined GOBIN (
+  set "GO_BIN_DIR=%GOBIN%"
+) else (
+  for /f "usebackq delims=" %%G in (`go env GOPATH`) do set "GOPATH=%%G"
+  if not defined GOPATH (
+    echo [错误] 无法获取 GOPATH，请检查 Go 安装是否正常。
+    echo.
+    pause
+    exit /b 1
+  )
+  set "GO_BIN_DIR=%GOPATH%\bin"
 )
 
-rem Ensure GOPATH\bin is on PATH so we can run tools installed by `go install`
-echo %PATH% | find /I "%GOPATH%\bin" >nul
+echo %PATH% | find /I "%GO_BIN_DIR%" >nul
 if errorlevel 1 (
-  set "PATH=%PATH%;%GOPATH%\bin"
+  set "PATH=%PATH%;%GO_BIN_DIR%"
 )
 
 rem ---------- Install backend dev tools (air/goimports) if missing ----------
@@ -88,15 +98,33 @@ if not exist "%ROOT%node_modules" (
   popd >nul
 )
 
+rem ---------- Avoid launching duplicate windows if ports are already in use ----------
+set "START_BACKEND=1"
+netstat -ano | findstr /C:":3001" >nul 2>nul
+if not errorlevel 1 set "START_BACKEND=0"
+
+set "START_FRONTEND=1"
+netstat -ano | findstr /C:":5173" >nul 2>nul
+if not errorlevel 1 set "START_FRONTEND=0"
+
 echo.
-echo [信息] 正在启动后端和前端（会打开两个命令行窗口）...
+echo [信息] 正在启动后端和前端...
 echo.
 
-start "Backend (air)" cmd /k "cd /d \"%ROOT%backend\" ^&^& air"
-start "Frontend (serve)" cmd /k "cd /d \"%ROOT%\" ^&^& npm run dev"
+if "%START_BACKEND%"=="1" (
+  start "Backend (air)" /d "%ROOT%backend" cmd /k air
+) else (
+  echo [提示] 检测到端口 3001 已被占用，已跳过后端启动（可能已在运行）。
+)
+
+if "%START_FRONTEND%"=="1" (
+  start "Frontend (serve)" /d "%ROOT%" cmd /k npm run dev
+) else (
+  echo [提示] 检测到端口 5173 已被占用，已跳过前端启动（可能已在运行）。
+)
 
 echo.
 echo [完成] 已触发启动命令。
-echo        关闭本窗口不会停止已打开的后端/前端窗口。
+echo        若看到 cmd 窗口不断弹出/闪退，请检查系统是否配置了 cmd AutoRun。
 echo.
 pause
