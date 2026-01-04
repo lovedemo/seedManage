@@ -52,6 +52,18 @@
 └── README.md
 ```
 
+## Windows 一键启动（双击脚本）
+
+在 Windows 下确保已安装 **Go** 与 **Node.js**，然后双击运行根目录的 `start-dev.bat`（或 `start-windows.bat`）。
+
+脚本会：
+- 自动将 `GOPATH\\bin` 加入当前进程的 `PATH`
+- 若缺少则安装后端开发工具（`air`、`goimports`）
+- 若缺少则执行 `npm install`
+- 分别启动后端与前端（会打开两个命令行窗口）
+
+> 停止服务：直接关闭对应的后端/前端命令行窗口即可。
+
 ## 后端（Go）
 
 ### 快速启动
@@ -66,7 +78,7 @@ make dev
 make run
 
 # 方式三：直接使用 Go 命令
-go run .
+go run ./cmd/server
 ```
 
 默认监听 `http://localhost:3001`，提供 `GET /api/search`、`GET /api/adapters`、`GET /api/health` 三个接口。
