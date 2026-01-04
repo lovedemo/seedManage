@@ -9,6 +9,7 @@ var BaseTrackers = []string{
 
 // 环境变量常量
 const (
+    Version              = "1.0.0"
     DefaultAdapterEnv    = "DEFAULT_ADAPTER"
     FallbackAdapterEnv   = "FALLBACK_ADAPTER"
     PortEnv              = "PORT"
