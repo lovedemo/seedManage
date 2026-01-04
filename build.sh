@@ -10,6 +10,8 @@ cd backend
 
 echo "[1/3] 准备构建目录..."
 mkdir -p bin
+rm -rf cmd/server/frontend
+cp -r ../frontend cmd/server/
 
 echo "[2/3] 编译可执行文件..."
 

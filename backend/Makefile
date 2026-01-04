@@ -14,7 +14,12 @@ run:
 build:
     @echo "📦 编译项目..."
     @mkdir -p bin
+    @echo "  [1/2] 复制前端文件..."
+    @rm -rf cmd/server/frontend
+    @cp -r ../frontend cmd/server/
+    @echo "  [2/2] 编译二进制文件..."
     @go build -ldflags="-s -w" -o bin/seedmanage ./cmd/server
+    @echo "✅ 编译完成: bin/seedmanage"
 
 # 编译所有平台
 build-all: build-windows build-linux build-macos
@@ -24,6 +29,10 @@ build-all: build-windows build-linux build-macos
 build-windows:
     @echo "📦 编译 Windows 版本..."
     @mkdir -p bin
+    @echo "  [1/2] 复制前端文件..."
+    @rm -rf cmd/server/frontend
+    @cp -r ../frontend cmd/server/
+    @echo "  [2/2] 编译二进制文件..."
     @GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/seedmanage-windows-amd64.exe ./cmd/server
     @echo "✅ Windows 版本: bin/seedmanage-windows-amd64.exe"
 
@@ -31,6 +40,10 @@ build-windows:
 build-linux:
     @echo "📦 编译 Linux 版本..."
     @mkdir -p bin
+    @echo "  [1/2] 复制前端文件..."
+    @rm -rf cmd/server/frontend
+    @cp -r ../frontend cmd/server/
+    @echo "  [2/2] 编译二进制文件..."
     @GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/seedmanage-linux-amd64 ./cmd/server
     @echo "✅ Linux 版本: bin/seedmanage-linux-amd64"
 
@@ -38,7 +51,12 @@ build-linux:
 build-macos:
     @echo "📦 编译 macOS 版本..."
     @mkdir -p bin
+    @echo "  [1/3] 复制前端文件..."
+    @rm -rf cmd/server/frontend
+    @cp -r ../frontend cmd/server/
+    @echo "  [2/3] 编译 amd64 版本..."
     @GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o bin/seedmanage-darwin-amd64 ./cmd/server
+    @echo "  [3/3] 编译 arm64 版本..."
     @GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o bin/seedmanage-darwin-arm64 ./cmd/server
     @echo "✅ macOS 版本: bin/seedmanage-darwin-amd64, bin/seedmanage-darwin-arm64"
 
@@ -56,7 +74,7 @@ test:
 # 清理
 clean:
     @echo "🧹 清理临时文件..."
-    @rm -rf tmp/ bin/
+    @rm -rf tmp/ bin/ cmd/server/frontend
     @go clean
 
 # 安装依赖工具

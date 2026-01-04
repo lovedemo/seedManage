@@ -178,6 +178,10 @@ PORT=8080 DEFAULT_ADAPTER=nyaa ./seedmanage
 - ✅ 前后端一体化，运行更简单
 - ✅ 无需额外的 Web 服务器
 
+**构建过程**：在编译时，构建脚本会将 `frontend/` 目录复制到 `backend/cmd/server/frontend/`，然后使用 `//go:embed frontend` 将其嵌入到二进制文件中。
+
+**注意**：由于 `go:embed` 不支持 `..` 路径，必须将前端文件复制到 Go 源代码的同一目录下。所有构建脚本都会自动处理这个过程。
+
 ### 编译优化
 
 编译时使用 `-ldflags="-s -w"` 参数：

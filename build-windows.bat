@@ -7,10 +7,14 @@ echo.
 
 cd /d "%~dp0backend"
 
-echo [1/3] 准备构建目录...
+echo [1/4] 准备构建目录...
 if not exist bin mkdir bin
 
-echo [2/3] 编译 Windows 可执行文件...
+echo [2/4] 复制前端文件到编译目录...
+if exist cmd\server\frontend rmdir /s /q cmd\server\frontend
+xcopy /E /I /Y ..\frontend cmd\server\frontend >nul
+
+echo [3/4] 编译 Windows 可执行文件...
 set GOOS=windows
 set GOARCH=amd64
 go build -ldflags="-s -w" -o bin/seedmanage-windows-amd64.exe ./cmd/server
@@ -23,7 +27,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [3/3] 创建发布包...
+echo [4/4] 创建发布包...
 cd ..
 
 if not exist release mkdir release

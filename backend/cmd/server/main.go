@@ -16,7 +16,7 @@ import (
     "github.com/seedmanage/backend/internal/utils"
 )
 
-//go:embed ../../frontend
+//go:embed frontend
 var frontendFS embed.FS
 
 func main() {
