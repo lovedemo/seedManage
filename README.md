@@ -90,10 +90,86 @@ go run ./cmd/server
 - 🔄 自动整理 import
 - 🐛 自动显示 lint 错误
 
+### 构建和打包
+
+项目支持将前端静态文件嵌入到后端二进制中，打包成单个可执行文件，无需额外配置即可运行。
+
+#### Windows 平台打包（推荐）
+
+```bash
+# 使用提供的批处理脚本
+build-windows.bat
+```
+
+或在 backend 目录下执行：
+
+```bash
+cd backend
+make build-windows
+```
+
+生成的可执行文件位于 `backend/bin/seedmanage-windows-amd64.exe`。
+
+#### 跨平台构建
+
+```bash
+# 编译所有平台
+bash build.sh
+
+# 或在 backend 目录下使用 Makefile
+cd backend
+make build-all
+```
+
+或单独编译特定平台：
+
+```bash
+cd backend
+make build-windows   # Windows
+make build-linux     # Linux
+make build-macos     # macOS (amd64 和 arm64)
+```
+
+生成的可执行文件位于 `backend/bin/` 目录。
+
+#### 运行打包后的程序
+
+1. 将生成的可执行文件（如 `seedmanage-windows-amd64.exe`）复制到任意目录
+2. 在同一目录下创建 `data` 文件夹，将 `data/sampleResults.json` 复制进去
+3. 双击运行可执行文件，或在命令行执行：
+   ```bash
+   # Windows
+   seedmanage-windows-amd64.exe
+
+   # Linux
+   chmod +x seedmanage-linux-amd64
+   ./seedmanage-linux-amd64
+
+   # macOS
+   chmod +x seedmanage-darwin-arm64
+   ./seedmanage-darwin-arm64
+   ```
+4. 在浏览器中打开 `http://localhost:3001`
+
+#### 自定义配置
+
+可以通过环境变量自定义配置：
+
+```bash
+# Windows
+set PORT=8080
+set DEFAULT_ADAPTER=nyaa
+seedmanage-windows-amd64.exe
+
+# Linux/macOS
+PORT=8080 DEFAULT_ADAPTER=nyaa ./seedmanage-linux-amd64
+```
+
 ### 其他命令
 
 ```bash
-make build         # 编译二进制文件
+cd backend
+make build         # 编译当前平台的二进制文件
 make fmt           # 手动格式化代码
 make test          # 运行测试
 make clean         # 清理临时文件

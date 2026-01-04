@@ -1,7 +1,9 @@
 package main
 
 import (
+    "embed"
     "errors"
+    "io/fs"
     "log"
     "net/http"
     "time"
@@ -13,6 +15,9 @@ import (
     "github.com/seedmanage/backend/internal/service"
     "github.com/seedmanage/backend/internal/utils"
 )
+
+//go:embed ../../frontend
+var frontendFS embed.FS
 
 func main() {
     // 从环境变量读取配置
@@ -57,10 +62,25 @@ func main() {
     // 创建 API 服务
     api := service.New(reg, historyStore)
 
+    // 从嵌入的文件系统中提取前端内容
+    frontendContent, err := fs.Sub(frontendFS, "frontend")
+    if err != nil {
+        log.Fatalf("[backend] 无法读取前端文件: %v", err)
+    }
+
+    // 创建主路由
+    mux := http.NewServeMux()
+
+    // 将 API 路由挂载到 /api/ 路径
+    mux.Handle("/api/", api.Routes())
+
+    // 静态文件服务（所有其他请求）
+    mux.Handle("/", http.FileServer(http.FS(frontendContent)))
+
     // 配置 HTTP 服务器
     srv := &http.Server{
         Addr:         ":" + port,
-        Handler:      api.Routes(),
+        Handler:      mux,
         ReadTimeout:  10 * time.Second,
         WriteTimeout: 10 * time.Second,
         IdleTimeout:  120 * time.Second,
