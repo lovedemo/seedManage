@@ -19,9 +19,13 @@ coverage/
 
 # Go build artifacts
 backend/bin/
+backend/cmd/server/frontend/
 *.exe
 *.test
 *.out
 
 # Runtime data
 data/searchHistory.json
+
+# Release packages
+release/
