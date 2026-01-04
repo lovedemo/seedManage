@@ -9,6 +9,7 @@ import (
     "strings"
     "time"
 
+    "github.com/seedmanage/backend/internal/config"
     "github.com/seedmanage/backend/internal/history"
     "github.com/seedmanage/backend/internal/models"
     "github.com/seedmanage/backend/internal/registry"
@@ -76,6 +77,7 @@ func (s *APIService) handleHealth(w http.ResponseWriter, r *http.Request) error 
     }
     payload := map[string]any{
         "status":         "ok",
+        "version":        config.Version,
         "time":           time.Now().UTC(),
         "defaultAdapter": s.registry.DefaultID(),
         "adapters":       s.registry.List(),
