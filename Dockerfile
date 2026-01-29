@@ -5,6 +5,7 @@ FROM golang:1.23-alpine AS builder
 WORKDIR /app
 COPY backend/ .
 COPY frontend/ ./cmd/server/frontend/
+COPY data/ ./data/
 
 # 构建应用
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -a -installsuffix cgo -o seedmanage ./cmd/server
