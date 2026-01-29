@@ -18,5 +18,6 @@ const (
     SukebeiEndpointEnv   = "SUKEBEI_ENDPOINT"
     SampleDataEnv        = "SAMPLE_DATA_FILE"
     SearchHistoryFileEnv = "SEARCH_HISTORY_FILE"
+    PasswordEnv          = "PASSWORD"
 )
 

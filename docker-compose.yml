@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  seedmanage:
+    build: .
+    container_name: seedmanage
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # 设置密码（可选，不设置则无密码保护）
+      # PASSWORD: "你的密码"
+      
+      # 其他可选配置
+      PORT: "3001"
+      DEFAULT_ADAPTER: "apibay"
+      FALLBACK_ADAPTER: "sample"
+      
+    # 数据持久化（可选，用于保存搜索历史）
+    volumes:
+      - ./data:/app/data:rw
+      # - ./logs:/app/logs:rw  # 如果需要日志持久化
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 网络配置
+    networks:
+      - seedmanage-network
+
+networks:
+  seedmanage-network:
+    driver: bridge
