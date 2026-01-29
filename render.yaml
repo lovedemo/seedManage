@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: seedmanage
+    env: go
+    plan: free
+    buildCommand: |
+      cd backend
+      cp -r ../frontend ./cmd/server/
+      go mod download
+      go build -ldflags="-s -w" -o ../seedmanage ./cmd/server
+    startCommand: |
+      ./seedmanage
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PASSWORD
+        generateValue: true
+        fromSecret: false
+      - key: DEFAULT_ADAPTER
+        value: "apibay"
+      - key: FALLBACK_ADAPTER
+        value: "sample"
+      - key: SAMPLE_DATA_FILE
+        value: "data/sampleResults.json"
+      - key: SEARCH_HISTORY_FILE
+        value: "data/searchHistory.json"
+    disks:
+      - name: data
+        mountPath: /data
+        sizeGB: 1

@@ -1,0 +1,45 @@
+# Git相关
+.git
+.gitignore
+
+# 构建相关
+bin/
+release/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE相关
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node.js相关（如果有的话）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python相关（如果有的话）
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 测试相关
+coverage/
+*.cover
+.coverage
+
+# 其他
+.env
+.env.local
+.env.*.local
