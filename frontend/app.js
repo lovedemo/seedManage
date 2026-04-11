@@ -318,10 +318,6 @@ const renderResults = (items = [], meta = {}) => {
       metaEntries.push(['更新时间', formatDate(item.uploaded)]);
     }
 
-    if (Array.isArray(item.trackers) && item.trackers.length) {
-      metaEntries.push(['Trackers', item.trackers.slice(0, 3).join('\n')]);
-    }
-
     const sourceLabel = item.source || adapterLabel;
     metaEntries.push(['数据源', sourceLabel]);
 
