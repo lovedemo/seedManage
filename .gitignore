@@ -26,6 +26,7 @@ backend/cmd/server/frontend/
 
 # Runtime data
 data/searchHistory.json
+data/collections/
 
 # Release packages
 release/

@@ -1,20 +1,21 @@
 package main
 
 import (
-    "embed"
-    "errors"
-    "io/fs"
-    "log"
-    "net/http"
-    "time"
+        "embed"
+        "errors"
+        "io/fs"
+        "log"
+        "net/http"
+        "time"
 
-    "github.com/seedmanage/backend/internal/adapters"
-    "github.com/seedmanage/backend/internal/config"
-    "github.com/seedmanage/backend/internal/history"
-    "github.com/seedmanage/backend/internal/registry"
-    "github.com/seedmanage/backend/internal/service"
-    "github.com/seedmanage/backend/internal/utils"
-)
+        "github.com/seedmanage/backend/internal/adapters"
+        "github.com/seedmanage/backend/internal/collections"
+        "github.com/seedmanage/backend/internal/config"
+        "github.com/seedmanage/backend/internal/history"
+        "github.com/seedmanage/backend/internal/registry"
+        "github.com/seedmanage/backend/internal/service"
+        "github.com/seedmanage/backend/internal/utils"
+    )
 
 //go:embed frontend
 var frontendFS embed.FS
@@ -176,8 +177,16 @@ func main() {
         log.Fatalf("[backend] 无法初始化历史记录存储: %v", err)
     }
 
+    // 初始化集合存储
+    collectionsDir := utils.ResolvePath(utils.Getenv("COLLECTIONS_DIR", "data/collections"))
+    collStore, err := collections.NewStore(collectionsDir)
+    if err != nil {
+        log.Fatalf("[backend] 无法初始化集合存储: %v", err)
+    }
+    log.Printf("[backend] 集合存储已初始化: %s", collectionsDir)
+
     // 创建 API 服务
-    api := service.New(reg, historyStore)
+    api := service.New(reg, historyStore, collStore)
 
     // 从嵌入的文件系统中提取前端内容
     frontendContent, err := fs.Sub(frontendFS, "frontend")

@@ -81,3 +81,13 @@ type AdapterInfo struct {
     Fallback    bool   `json:"fallback"`
 }
 
+// CollectionItem 表示集合中的单个条目
+type CollectionItem struct {
+    Magnet    string    `json:"magnet"`
+    Keywords  string    `json:"keywords"`
+    Remarks   string    `json:"remarks"`
+    Title     string    `json:"title"`
+    Starred   bool      `json:"starred"`
+    AddedAt   time.Time `json:"addedAt"`
+}
+

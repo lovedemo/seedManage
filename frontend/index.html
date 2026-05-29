@@ -16,6 +16,9 @@
       <nav class="nav-tabs" aria-label="页面导航">
         <button type="button" class="nav-tab is-active" data-view="home">首页</button>
         <button type="button" class="nav-tab" data-view="history">历史列表</button>
+        <button type="button" class="nav-tab" data-view="collections">
+          <span class="nav-tab-icon">📁</span> 收藏集
+        </button>
       </nav>
 
       <main>
@@ -86,6 +89,54 @@
             <div id="historyList" class="history-list"></div>
           </div>
         </section>
+
+        <section id="collectionsSection" class="view-section" aria-live="polite">
+          <div id="collectionsListView" class="collections-panel">
+            <div class="collections-panel__header">
+              <div>
+                <h2>收藏集</h2>
+                <p class="collections-panel__subtitle">管理和组织你的磁力链接收藏。</p>
+              </div>
+              <div class="collections-panel__actions">
+                <button type="button" id="createCollectionBtn" class="ghost-button">+ 新建收藏集</button>
+                <button type="button" id="importCSVBtn" class="ghost-button">📥 导入 CSV</button>
+              </div>
+            </div>
+            <div id="collectionsStatus" class="status" hidden></div>
+            <div id="collectionsList" class="collections-grid"></div>
+          </div>
+
+          <div id="collectionDetailView" class="collections-panel" style="display:none;">
+            <div class="collections-panel__header">
+              <div>
+                <h2 id="collectionDetailTitle">收藏集</h2>
+                <p id="collectionDetailMeta" class="collections-panel__subtitle"></p>
+              </div>
+              <div class="collections-panel__actions">
+                <button type="button" id="backToCollectionsBtn" class="ghost-button">← 返回列表</button>
+                <button type="button" id="deleteCollectionBtn" class="ghost-button delete-btn">🗑 删除</button>
+              </div>
+            </div>
+            <div class="collection-search-bar">
+              <input type="text" id="collectionSearchInput" placeholder="搜索条目..." autocomplete="off" />
+              <label class="collection-star-filter">
+                <input type="checkbox" id="collectionStarFilter" />
+                <span>⭐ 仅显示星标</span>
+              </label>
+            </div>
+            <div id="collectionDetailStatus" class="status" hidden></div>
+            <div id="collectionItems" class="results-grid"></div>
+            <div id="collectionPagination" class="pagination" hidden>
+              <div class="pagination-controls">
+                <button type="button" id="collPrevPageBtn" class="pagination-btn" disabled>上一页</button>
+                <span class="pagination-info">
+                  第 <span id="collCurrentPage">1</span> 页 / 共 <span id="collTotalPages">0</span> 页
+                </span>
+                <button type="button" id="collNextPageBtn" class="pagination-btn" disabled>下一页</button>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer class="footer">
@@ -124,6 +175,52 @@
           <p class="history-card__empty" hidden>本次搜索没有结果。</p>
           <ul class="history-card__results"></ul>
         </div>
+      </article>
+    </template>
+
+    <template id="collectionCardTemplate">
+      <article class="collection-card" data-id="">
+        <div class="collection-card__icon">📁</div>
+        <div class="collection-card__info">
+          <h3 class="collection-card__name"></h3>
+          <p class="collection-card__meta"></p>
+        </div>
+        <div class="collection-card__actions">
+          <button type="button" class="collection-card__open ghost-button">查看</button>
+          <button type="button" class="collection-card__delete ghost-button delete-btn">删除</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="collectionItemTemplate">
+      <article class="collection-item-card" data-starred="false">
+        <header class="collection-item__header">
+          <h3 class="collection-item__title"></h3>
+          <div class="collection-item__controls">
+            <button type="button" class="collection-item__star" title="星标">☆</button>
+          </div>
+        </header>
+        <div class="collection-item__keywords"></div>
+        <div class="collection-item__remarks"></div>
+        <dl class="card-meta"></dl>
+        <footer class="card-footer">
+          <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
+          <a class="card-open">打开</a>
+        </footer>
+      </article>
+    </template>
+
+    <template id="keywordSearchResultTemplate">
+      <article class="result-card keyword-search-card">
+        <header class="card-header">
+          <h2 class="card-title"></h2>
+          <span class="card-badge"></span>
+        </header>
+        <dl class="card-meta"></dl>
+        <footer class="card-footer">
+          <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
+          <a class="card-open">打开</a>
+        </footer>
       </article>
     </template>
 
