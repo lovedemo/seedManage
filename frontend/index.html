@@ -9,17 +9,18 @@
   <body>
     <div class="page">
       <header class="header">
-        <h1>本地磁力搜索预览</h1>
-        <p class="subtitle">输入关键字或粘贴磁力链接，快速获取预览卡片。</p>
+        <div class="header-content">
+          <h1>本地磁力搜索预览</h1>
+          <p class="subtitle">输入关键字或粘贴磁力链接，快速获取预览卡片。</p>
+        </div>
+        <nav class="nav-tabs" aria-label="页面导航">
+          <button type="button" class="nav-tab is-active" data-view="home">首页</button>
+          <button type="button" class="nav-tab" data-view="history">历史列表</button>
+          <button type="button" class="nav-tab" data-view="collections">
+            <span class="nav-tab-icon">📁</span> 收藏集
+          </button>
+        </nav>
       </header>
-
-      <nav class="nav-tabs" aria-label="页面导航">
-        <button type="button" class="nav-tab is-active" data-view="home">首页</button>
-        <button type="button" class="nav-tab" data-view="history">历史列表</button>
-        <button type="button" class="nav-tab" data-view="collections">
-          <span class="nav-tab-icon">📁</span> 收藏集
-        </button>
-      </nav>
 
       <main>
         <section id="homeSection" class="view-section" aria-label="磁力搜索">
@@ -99,7 +100,6 @@
               </div>
               <div class="collections-panel__actions">
                 <button type="button" id="createCollectionBtn" class="ghost-button">+ 新建收藏集</button>
-                <button type="button" id="importCSVBtn" class="ghost-button">📥 导入 CSV</button>
               </div>
             </div>
             <div id="collectionsStatus" class="status" hidden></div>
@@ -108,22 +108,38 @@
 
           <div id="collectionDetailView" class="collections-panel" style="display:none;">
             <div class="collections-panel__header">
-              <div>
-                <h2 id="collectionDetailTitle">收藏集</h2>
-                <p id="collectionDetailMeta" class="collections-panel__subtitle"></p>
+              <div class="collection-header-main">
+                <button type="button" id="backToCollectionsBtn" class="back-button" title="返回列表">←</button>
+                <div>
+                  <h2 id="collectionDetailTitle">收藏集</h2>
+                  <p id="collectionDetailMeta" class="collections-panel__subtitle"></p>
+                </div>
               </div>
               <div class="collections-panel__actions">
-                <button type="button" id="backToCollectionsBtn" class="ghost-button">← 返回列表</button>
-                <button type="button" id="deleteCollectionBtn" class="ghost-button delete-btn">🗑 删除</button>
+                <button type="button" id="addItemBtn" class="ghost-button">+ 添加条目</button>
+                <button type="button" id="importCSVBtn" class="ghost-button">📥 导入 CSV</button>
+                <button type="button" id="deleteCollectionBtn" class="ghost-button delete-btn">🗑 删除集合</button>
               </div>
             </div>
+
             <div class="collection-search-bar">
-              <input type="text" id="collectionSearchInput" placeholder="搜索条目..." autocomplete="off" />
+              <div class="collection-search-input-wrapper">
+                <input type="text" id="collectionSearchInput" placeholder="搜索当前集合..." autocomplete="off" />
+              </div>
               <label class="collection-star-filter">
                 <input type="checkbox" id="collectionStarFilter" />
                 <span>⭐ 仅显示星标</span>
               </label>
             </div>
+
+            <div id="batchActionsBar" class="batch-actions-bar" hidden>
+              <span id="selectedCountText">已选择 0 项</span>
+              <div class="batch-actions-buttons">
+                <button type="button" id="batchDeleteBtn" class="batch-btn delete-btn">批量删除</button>
+                <button type="button" id="cancelSelectionBtn" class="batch-btn">取消</button>
+              </div>
+            </div>
+
             <div id="collectionDetailStatus" class="status" hidden></div>
             <div id="collectionItems" class="results-grid"></div>
             <div id="collectionPagination" class="pagination" hidden>
@@ -194,19 +210,24 @@
 
     <template id="collectionItemTemplate">
       <article class="collection-item-card" data-starred="false">
-        <header class="collection-item__header">
-          <h3 class="collection-item__title"></h3>
-          <div class="collection-item__controls">
-            <button type="button" class="collection-item__star" title="星标">☆</button>
-          </div>
-        </header>
-        <div class="collection-item__keywords"></div>
-        <div class="collection-item__remarks"></div>
-        <dl class="card-meta"></dl>
-        <footer class="card-footer">
-          <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
-          <a class="card-open">打开</a>
-        </footer>
+        <div class="collection-item__selection">
+          <input type="checkbox" class="collection-item__checkbox" />
+        </div>
+        <div class="collection-item__content">
+          <header class="collection-item__header">
+            <h3 class="collection-item__title"></h3>
+            <div class="collection-item__controls">
+              <button type="button" class="collection-item__star" title="星标">☆</button>
+            </div>
+          </header>
+          <div class="collection-item__keywords"></div>
+          <div class="collection-item__remarks"></div>
+          <dl class="card-meta"></dl>
+          <footer class="card-footer">
+            <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
+            <a class="card-open">打开</a>
+          </footer>
+        </div>
       </article>
     </template>
 
@@ -223,6 +244,59 @@
         </footer>
       </article>
     </template>
+
+    <div id="addItemModal" class="modal" hidden>
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2>添加新条目</h2>
+          <button type="button" class="close-modal-btn">&times;</button>
+        </header>
+        <div class="modal-body">
+          <div class="modal-tabs">
+            <button type="button" class="modal-tab is-active" data-tab="singleAdd">手动添加</button>
+            <button type="button" class="modal-tab" data-tab="batchAdd">批量添加 (Magnet)</button>
+          </div>
+          
+          <div id="singleAddTab" class="modal-tab-content">
+            <form id="singleAddForm">
+              <div class="form-group">
+                <label for="itemMagnet">磁力链接 (Magnet) *</label>
+                <input type="text" id="itemMagnet" name="magnet" placeholder="magnet:?xt=..." required />
+              </div>
+              <div class="form-group">
+                <label for="itemTitle">标题 (可选)</label>
+                <input type="text" id="itemTitle" name="title" placeholder="如果不填将自动生成" />
+              </div>
+              <div class="form-group">
+                <label for="itemKeywords">关键字 (可选)</label>
+                <input type="text" id="itemKeywords" name="keywords" placeholder="空格分隔" />
+              </div>
+              <div class="form-group">
+                <label for="itemRemarks">备注 / 笔记 (可选)</label>
+                <textarea id="itemRemarks" name="remarks" placeholder="在这里输入条目备注..."></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="primary-btn">添加到集合</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="batchAddTab" class="modal-tab-content" hidden>
+            <form id="batchAddForm">
+              <div class="form-group">
+                <label for="batchMagnets">磁力链接列表 (每行一个) *</label>
+                <textarea id="batchMagnets" name="magnets" placeholder="magnet:?xt=...
+magnet:?xt=..." required></textarea>
+              </div>
+              <p class="form-helper">批量添加仅支持添加磁力链接。如果需要更详细的信息，请使用 CSV 导入。</p>
+              <div class="modal-footer">
+                <button type="submit" class="primary-btn">批量添加</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="./app.js" type="module"></script>
   </body>
