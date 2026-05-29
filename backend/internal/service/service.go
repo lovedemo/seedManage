@@ -3,12 +3,14 @@ package service
 import (
     "encoding/json"
     "fmt"
+    "io"
     "log"
     "net/http"
     "strconv"
     "strings"
     "time"
 
+    "github.com/seedmanage/backend/internal/collections"
     "github.com/seedmanage/backend/internal/config"
     "github.com/seedmanage/backend/internal/history"
     "github.com/seedmanage/backend/internal/models"
@@ -18,15 +20,17 @@ import (
 
 // APIService 提供 HTTP API 服务
 type APIService struct {
-    registry *registry.AdapterRegistry
-    history  *history.Store
+    registry    *registry.AdapterRegistry
+    history     *history.Store
+    collections *collections.Store
 }
 
 // New 创建一个新的 API 服务
-func New(reg *registry.AdapterRegistry, historyStore *history.Store) *APIService {
+func New(reg *registry.AdapterRegistry, historyStore *history.Store, collStore *collections.Store) *APIService {
     return &APIService{
-        registry: reg,
-        history:  historyStore,
+        registry:    reg,
+        history:     historyStore,
+        collections: collStore,
     }
 }
 
@@ -37,6 +41,8 @@ func (s *APIService) Routes() http.Handler {
     mux.HandleFunc("/api/adapters", s.withJSON(s.handleAdapters))
     mux.HandleFunc("/api/search", s.withJSON(s.handleSearch))
     mux.HandleFunc("/api/history", s.withJSON(s.handleHistory))
+    mux.HandleFunc("/api/collections", s.withJSON(s.handleCollections))
+    mux.HandleFunc("/api/collections/", s.withJSON(s.handleCollectionByID))
     return s.cors(mux)
 }
 
@@ -60,7 +66,7 @@ func (s *APIService) withJSON(handler jsonHandler) http.HandlerFunc {
 func (s *APIService) cors(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
         if r.Method == http.MethodOptions {
             w.WriteHeader(http.StatusNoContent)
@@ -257,6 +263,251 @@ func (s *APIService) recordHistory(response models.SearchResponse) {
     if err := s.history.Record(response); err != nil {
         log.Printf("[service] 保存搜索历史失败: %v", err)
     }
+}
+
+// handleCollections handles collection listing, creation, and CSV import
+func (s *APIService) handleCollections(w http.ResponseWriter, r *http.Request) error {
+    if s.collections == nil {
+        return ClientError{Message: "集合功能不可用。"}
+    }
+
+    switch r.Method {
+    case http.MethodGet:
+        collections, err := s.collections.List()
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+        payload := map[string]any{
+            "collections": collections,
+        }
+        return s.writeJSON(w, payload, http.StatusOK)
+
+    case http.MethodPost:
+        contentType := r.Header.Get("Content-Type")
+
+        // Handle CSV import
+        if strings.Contains(contentType, "multipart/form-data") {
+            file, header, err := r.FormFile("file")
+            if err != nil {
+                return ClientError{Message: "请上传CSV文件。"}
+            }
+            defer file.Close()
+
+            // Read file content
+            data, err := io.ReadAll(file)
+            if err != nil {
+                return ClientError{Message: "无法读取上传的文件。"}
+            }
+
+            // Use filename without extension as collection name
+            name := r.FormValue("name")
+            if name == "" {
+                name = strings.TrimSuffix(header.Filename, ".csv")
+            }
+            if name == "" {
+                name = "导入的集合"
+            }
+
+            meta, err := s.collections.ImportCSV(name, string(data))
+            if err != nil {
+                return ClientError{Message: err.Error()}
+            }
+
+            payload := map[string]any{
+                "message":    "集合已成功从CSV导入",
+                "collection": meta,
+            }
+            return s.writeJSON(w, payload, http.StatusCreated)
+        }
+
+        // Handle JSON body for creating empty collection
+        var body struct {
+            Name string `json:"name"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+            return ClientError{Message: "请提供有效的JSON数据。"}
+        }
+        if strings.TrimSpace(body.Name) == "" {
+            return ClientError{Message: "请提供集合名称。"}
+        }
+
+        meta, err := s.collections.Create(strings.TrimSpace(body.Name))
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+
+        payload := map[string]any{
+            "message":    "集合已创建",
+            "collection": meta,
+        }
+        return s.writeJSON(w, payload, http.StatusCreated)
+
+    default:
+        return NewMethodNotAllowedError(r.Method)
+    }
+}
+
+// handleCollectionByID handles individual collection operations
+func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request) error {
+    if s.collections == nil {
+        return ClientError{Message: "集合功能不可用。"}
+    }
+
+    // Extract collection ID from path: /api/collections/{id}
+    id := strings.TrimPrefix(r.URL.Path, "/api/collections/")
+    id = strings.TrimSuffix(id, "/")
+    if id == "" {
+        return ClientError{Message: "请提供集合ID。"}
+    }
+
+    // Check for sub-routes like /api/collections/{id}/items
+    if strings.HasSuffix(r.URL.Path, "/items") || strings.HasSuffix(r.URL.Path, "/items/") {
+        id = strings.TrimSuffix(id, "/items")
+        id = strings.TrimSuffix(id, "/")
+        return s.handleCollectionItems(w, r, id)
+    }
+    if strings.Contains(r.URL.Path, "/search") {
+        id = strings.ReplaceAll(id, "/search", "")
+        id = strings.TrimSuffix(id, "/")
+        return s.handleCollectionSearch(w, r, id)
+    }
+
+    switch r.Method {
+    case http.MethodGet:
+        cf, err := s.collections.Get(id)
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+        return s.writeJSON(w, cf, http.StatusOK)
+
+    case http.MethodDelete:
+        if err := s.collections.Delete(id); err != nil {
+            return ClientError{Message: err.Error()}
+        }
+        payload := map[string]any{
+            "message": "集合已删除",
+        }
+        return s.writeJSON(w, payload, http.StatusOK)
+
+    default:
+        return NewMethodNotAllowedError(r.Method)
+    }
+}
+
+// handleCollectionItems handles adding and listing items within a collection
+func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Request, collectionID string) error {
+    switch r.Method {
+    case http.MethodPost:
+        var item models.CollectionItem
+        if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+            return ClientError{Message: "请提供有效的JSON数据。"}
+        }
+        if strings.TrimSpace(item.Magnet) == "" {
+            return ClientError{Message: "请提供磁力链接。"}
+        }
+        if strings.TrimSpace(item.Title) == "" {
+            // Generate title from magnet
+            item.Title = item.Magnet
+            if len(item.Title) > 60 {
+                item.Title = item.Title[:60] + "..."
+            }
+        }
+
+        created, err := s.collections.AddItem(collectionID, item)
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+
+        payload := map[string]any{
+            "message": "条目已添加",
+            "item":    created,
+        }
+        return s.writeJSON(w, payload, http.StatusCreated)
+
+    default:
+        return NewMethodNotAllowedError(r.Method)
+    }
+}
+
+// handleCollectionSearch performs a keyword search using existing adapters but without saving to history
+func (s *APIService) handleCollectionSearch(w http.ResponseWriter, r *http.Request, collectionID string) error {
+    if r.Method != http.MethodGet {
+        return NewMethodNotAllowedError(r.Method)
+    }
+
+    keyword := strings.TrimSpace(r.URL.Query().Get("q"))
+    if keyword == "" {
+        return ClientError{Message: "请提供搜索关键字。"}
+    }
+
+    // Perform search using existing adapters WITHOUT saving to history
+    adapterID := strings.TrimSpace(r.URL.Query().Get("adapter"))
+    if adapterID == "" {
+        adapterID = s.registry.DefaultID()
+    }
+
+    adapter, ok := s.registry.Get(adapterID)
+    if !ok {
+        return ClientError{Message: fmt.Sprintf("未知的适配器: %s", adapterID)}
+    }
+
+    searchOptions := models.SearchOptions{
+        Query: keyword,
+        Page:  1,
+    }
+
+    results, err := adapter.SearchWithOptions(r.Context(), searchOptions)
+
+    meta := models.SearchMeta{
+        Mode:               "search",
+        Adapter:            adapter.ID(),
+        AdapterName:        adapter.Name(),
+        AdapterDescription: adapter.Description(),
+        AdapterEndpoint:    adapter.Endpoint(),
+        ResultCount:        len(results),
+        HasPrevPage:        false,
+    }
+
+    if err != nil {
+        meta.AdapterError = err.Error()
+    }
+
+    const expectedPageSize = 10
+    if len(results) >= expectedPageSize {
+        meta.HasNextPage = true
+    }
+
+    // Try fallback if main adapter fails
+    if (err != nil || len(results) == 0) {
+        if fallback, ok := s.registry.Fallback(adapter.ID()); ok {
+            fallbackResults, fallbackErr := fallback.SearchWithOptions(r.Context(), searchOptions)
+            if fallbackErr == nil && len(fallbackResults) > 0 {
+                results = fallbackResults
+                meta.ResultCount = len(results)
+                meta.FallbackUsed = true
+                meta.FallbackAdapter = fallback.ID()
+                meta.FallbackAdapterName = fallback.Name()
+                if len(fallbackResults) >= expectedPageSize {
+                    meta.HasNextPage = true
+                } else {
+                    meta.HasNextPage = false
+                }
+            } else if fallbackErr != nil {
+                meta.FallbackAdapter = fallback.ID()
+                meta.FallbackAdapterName = fallback.Name()
+                meta.FallbackAdapterError = fallbackErr.Error()
+            }
+        }
+    }
+
+    response := models.SearchResponse{
+        Query:   keyword,
+        Results: results,
+        Meta:    meta,
+    }
+
+    // Do NOT save to history - this is a collection keyword search
+    return s.writeJSON(w, response, http.StatusOK)
 }
 
 // writeJSON 写入 JSON 响应

@@ -24,9 +24,36 @@ const totalPagesValueEl = document.getElementById('totalPagesValue');
 const pageInput = document.getElementById('pageInput');
 const goToPageBtn = document.getElementById('goToPageBtn');
 
+// Collections DOM elements
+const collectionsSection = document.getElementById('collectionsSection');
+const collectionsListView = document.getElementById('collectionsListView');
+const collectionDetailView = document.getElementById('collectionDetailView');
+const collectionsListEl = document.getElementById('collectionsList');
+const collectionsStatusEl = document.getElementById('collectionsStatus');
+const createCollectionBtn = document.getElementById('createCollectionBtn');
+const importCSVBtn = document.getElementById('importCSVBtn');
+const backToCollectionsBtn = document.getElementById('backToCollectionsBtn');
+const deleteCollectionBtn = document.getElementById('deleteCollectionBtn');
+const collectionDetailTitle = document.getElementById('collectionDetailTitle');
+const collectionDetailMeta = document.getElementById('collectionDetailMeta');
+const collectionSearchInput = document.getElementById('collectionSearchInput');
+const collectionStarFilter = document.getElementById('collectionStarFilter');
+const collectionItemsEl = document.getElementById('collectionItems');
+const collectionDetailStatusEl = document.getElementById('collectionDetailStatus');
+const collectionPaginationEl = document.getElementById('collectionPagination');
+const collPrevPageBtn = document.getElementById('collPrevPageBtn');
+const collNextPageBtn = document.getElementById('collNextPageBtn');
+const collCurrentPageEl = document.getElementById('collCurrentPage');
+const collTotalPagesEl = document.getElementById('collTotalPages');
+
+const collectionCardTemplate = document.getElementById('collectionCardTemplate');
+const collectionItemTemplate = document.getElementById('collectionItemTemplate');
+const keywordSearchResultTemplate = document.getElementById('keywordSearchResultTemplate');
+
 const viewSections = {
   home: homeSection,
-  history: historySection
+  history: historySection,
+  collections: collectionsSection
 };
 
 const STORAGE_KEYS = {
@@ -66,6 +93,19 @@ const historyState = {
   items: [],
   isLoading: false,
   needsRefresh: true
+};
+
+const collectionsState = {
+  items: [],
+  currentCollection: null,
+  currentCollectionId: null,
+  isLoading: false,
+  needsRefresh: true,
+  detailPage: 1,
+  detailPageSize: 20,
+  searchQuery: '',
+  starFilter: false,
+  keywordSearchResults: {}
 };
 
 const formatNumber = (value) => {
@@ -143,6 +183,40 @@ const setHistoryStatus = (message, variant = 'info') => {
     historyStatusEl.classList.add('error');
   } else {
     historyStatusEl.classList.remove('error');
+  }
+};
+
+const setCollectionsStatus = (message, variant = 'info') => {
+  if (!collectionsStatusEl) return;
+  if (!message) {
+    collectionsStatusEl.hidden = true;
+    collectionsStatusEl.textContent = '';
+    collectionsStatusEl.classList.remove('error');
+    return;
+  }
+  collectionsStatusEl.hidden = false;
+  collectionsStatusEl.textContent = message;
+  if (variant === 'error') {
+    collectionsStatusEl.classList.add('error');
+  } else {
+    collectionsStatusEl.classList.remove('error');
+  }
+};
+
+const setCollectionDetailStatus = (message, variant = 'info') => {
+  if (!collectionDetailStatusEl) return;
+  if (!message) {
+    collectionDetailStatusEl.hidden = true;
+    collectionDetailStatusEl.textContent = '';
+    collectionDetailStatusEl.classList.remove('error');
+    return;
+  }
+  collectionDetailStatusEl.hidden = false;
+  collectionDetailStatusEl.textContent = message;
+  if (variant === 'error') {
+    collectionDetailStatusEl.classList.add('error');
+  } else {
+    collectionDetailStatusEl.classList.remove('error');
   }
 };
 
@@ -652,6 +726,21 @@ const setView = (view) => {
       setHistoryStatus('暂无历史记录。');
     }
   }
+
+  if (view === 'collections') {
+    // Show list view, hide detail view
+    collectionsListView.style.display = 'block';
+    collectionDetailView.style.display = 'none';
+    if (collectionsState.needsRefresh) {
+      loadCollections({ force: true });
+    } else if (collectionsState.items.length) {
+      renderCollections(collectionsState.items);
+      setCollectionsStatus('');
+    } else {
+      renderCollections([]);
+      setCollectionsStatus('暂无收藏集。');
+    }
+  }
 };
 
 const performSearch = async (query, page = 1) => {
@@ -728,6 +817,455 @@ const performSearch = async (query, page = 1) => {
     input.removeAttribute('aria-busy');
   }
 };
+
+// ============= COLLECTIONS FUNCTIONS =============
+
+const loadCollections = async ({ force = false } = {}) => {
+  if (collectionsState.isLoading) return;
+  if (!force && !collectionsState.needsRefresh) return;
+
+  collectionsState.isLoading = true;
+  collectionsState.needsRefresh = false;
+  setCollectionsStatus('正在加载收藏集…');
+
+  try {
+    const response = await fetch(`${API_BASE}/api/collections`);
+    if (!response.ok) {
+      throw new Error(`后端返回状态 ${response.status}`);
+    }
+    const data = await response.json();
+    const items = Array.isArray(data.collections) ? data.collections : [];
+    collectionsState.items = items;
+    renderCollections(items);
+    if (!items.length) {
+      setCollectionsStatus('暂无收藏集。新建一个吧！');
+    } else {
+      setCollectionsStatus('');
+    }
+  } catch (error) {
+    setCollectionsStatus(`无法加载收藏集：${error.message}`, 'error');
+  } finally {
+    collectionsState.isLoading = false;
+    if (collectionsState.needsRefresh) {
+      loadCollections({ force: true });
+    }
+  }
+};
+
+const renderCollections = (items = []) => {
+  if (!collectionsListEl || !collectionCardTemplate) return;
+  collectionsListEl.innerHTML = '';
+
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'collections-panel__subtitle';
+    empty.textContent = '暂无收藏集。';
+    collectionsListEl.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  items.forEach((collection) => {
+    const card = collectionCardTemplate.content.cloneNode(true);
+    const article = card.querySelector('.collection-card');
+    const nameEl = card.querySelector('.collection-card__name');
+    const metaEl = card.querySelector('.collection-card__meta');
+    const openBtn = card.querySelector('.collection-card__open');
+    const deleteBtn = card.querySelector('.collection-card__delete');
+
+    if (article) {
+      article.dataset.id = collection.id || '';
+    }
+    if (nameEl) {
+      nameEl.textContent = collection.name || '未命名收藏集';
+    }
+    if (metaEl) {
+      const count = collection.itemCount || 0;
+      const date = formatDateTime(collection.createdAt);
+      metaEl.textContent = `${count} 个条目 · 创建于 ${date}`;
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        openCollectionDetail(collection.id);
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm(`确定要删除收藏集「${collection.name}」吗？`)) return;
+        try {
+          const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(collection.id)}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || `删除失败，状态码：${response.status}`);
+          }
+          setCollectionsStatus('收藏集已删除');
+          setTimeout(() => setCollectionsStatus(''), 1800);
+          collectionsState.needsRefresh = true;
+          loadCollections({ force: true });
+        } catch (error) {
+          setCollectionsStatus(`删除失败：${error.message}`, 'error');
+        }
+      });
+    }
+
+    fragment.appendChild(card);
+  });
+
+  collectionsListEl.appendChild(fragment);
+};
+
+const openCollectionDetail = async (id) => {
+  collectionsState.currentCollectionId = id;
+  collectionsState.detailPage = 1;
+  collectionsState.searchQuery = '';
+  collectionsState.starFilter = false;
+  collectionSearchInput.value = '';
+  collectionStarFilter.checked = false;
+
+  collectionsListView.style.display = 'none';
+  collectionDetailView.style.display = 'block';
+
+  await loadCollectionDetail();
+};
+
+const loadCollectionDetail = async () => {
+  const id = collectionsState.currentCollectionId;
+  if (!id) return;
+
+  setCollectionDetailStatus('正在加载…');
+  collectionItemsEl.innerHTML = '';
+
+  try {
+    const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(id)}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `加载失败，状态码：${response.status}`);
+    }
+    const data = await response.json();
+    collectionsState.currentCollection = data;
+
+    // Update header
+    if (collectionDetailTitle) {
+      collectionDetailTitle.textContent = data.meta?.name || '收藏集';
+    }
+    if (collectionDetailMeta) {
+      const count = data.meta?.itemCount || 0;
+      const date = formatDateTime(data.meta?.createdAt);
+      collectionDetailMeta.textContent = `${count} 个条目 · 创建于 ${date}`;
+    }
+
+    // Filter and paginate
+    let items = Array.isArray(data.items) ? data.items : [];
+
+    // Apply search filter
+    if (collectionsState.searchQuery) {
+      const q = collectionsState.searchQuery.toLowerCase();
+      items = items.filter(item => {
+        return (item.title && item.title.toLowerCase().includes(q)) ||
+               (item.keywords && item.keywords.toLowerCase().includes(q)) ||
+               (item.remarks && item.remarks.toLowerCase().includes(q));
+      });
+    }
+
+    // Apply starred filter
+    if (collectionsState.starFilter) {
+      items = items.filter(item => item.starred);
+    }
+
+    // Sort by addedAt descending
+    items.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+
+    // Paginate
+    const pageSize = collectionsState.detailPageSize;
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    const page = Math.min(collectionsState.detailPage, totalPages);
+    const start = (page - 1) * pageSize;
+    const pageItems = items.slice(start, start + pageSize);
+
+    // Render items
+    renderCollectionItems(pageItems, items);
+
+    // Update pagination
+    collCurrentPageEl.textContent = page;
+    collTotalPagesEl.textContent = totalPages;
+    collPrevPageBtn.disabled = page <= 1;
+    collNextPageBtn.disabled = page >= totalPages;
+    collectionPaginationEl.hidden = totalPages <= 1;
+
+    setCollectionDetailStatus('');
+  } catch (error) {
+    setCollectionDetailStatus(`加载失败：${error.message}`, 'error');
+  }
+};
+
+const renderCollectionItems = (items = [], allFilteredItems = []) => {
+  collectionItemsEl.innerHTML = '';
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'status';
+    empty.textContent = '没有找到匹配的条目。';
+    collectionItemsEl.appendChild(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  items.forEach((item, index) => {
+    const card = collectionItemTemplate.content.cloneNode(true);
+    const article = card.querySelector('.collection-item-card');
+    const titleEl = card.querySelector('.collection-item__title');
+    const starBtn = card.querySelector('.collection-item__star');
+    const keywordsEl = card.querySelector('.collection-item__keywords');
+    const remarksEl = card.querySelector('.collection-item__remarks');
+    const metaEl = card.querySelector('.card-meta');
+    const actionEl = card.querySelector('.card-action');
+    const openEl = card.querySelector('.card-open');
+
+    // Title
+    titleEl.textContent = item.title || item.remarks || '未命名条目';
+
+    // Star button
+    if (starBtn) {
+      starBtn.textContent = item.starred ? '⭐' : '☆';
+      starBtn.dataset.starred = item.starred ? 'true' : 'false';
+      starBtn.addEventListener('click', async () => {
+        // Toggle star - for now just update UI since we don't have a toggle API
+        // In a full implementation, we'd call the backend to update
+        const newStarred = !(starBtn.dataset.starred === 'true');
+        starBtn.textContent = newStarred ? '⭐' : '☆';
+        starBtn.dataset.starred = newStarred ? 'true' : 'false';
+        if (article) article.dataset.starred = newStarred ? 'true' : 'false';
+        setCollectionDetailStatus('星标状态已更新（本地）');
+        setTimeout(() => setCollectionDetailStatus(''), 1500);
+      });
+    }
+
+    // Keywords - clickable for search
+    if (keywordsEl && item.keywords) {
+      const keywords = item.keywords.split(',').map(k => k.trim()).filter(Boolean);
+      if (keywords.length) {
+        const keywordFragment = document.createDocumentFragment();
+        keywords.forEach(keyword => {
+          const chip = document.createElement('span');
+          chip.className = 'keyword-chip';
+          chip.textContent = keyword;
+          chip.title = `搜索: ${keyword}`;
+          chip.addEventListener('click', () => {
+            performKeywordSearch(keyword);
+          });
+          keywordFragment.appendChild(chip);
+        });
+        keywordsEl.appendChild(keywordFragment);
+      } else {
+        keywordsEl.style.display = 'none';
+      }
+    } else {
+      keywordsEl.style.display = 'none';
+    }
+
+    // Remarks
+    if (remarksEl && item.remarks) {
+      remarksEl.textContent = item.remarks;
+    } else {
+      remarksEl.style.display = 'none';
+    }
+
+    // Meta info
+    if (metaEl) {
+      metaEl.innerHTML = '';
+      if (item.addedAt) {
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        dt.textContent = '添加时间';
+        dd.textContent = formatDateTime(item.addedAt);
+        metaEl.appendChild(dt);
+        metaEl.appendChild(dd);
+      }
+    }
+
+    // Action buttons
+    if (actionEl && item.magnet) {
+      actionEl.dataset.magnet = item.magnet;
+      actionEl.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const { magnet } = event.currentTarget.dataset;
+        if (!magnet) return;
+        try {
+          await navigator.clipboard.writeText(magnet);
+          setCollectionDetailStatus('磁力链接已复制到剪贴板。');
+          setTimeout(() => setCollectionDetailStatus(''), 1800);
+        } catch (error) {
+          window.open(magnet, '_blank');
+        }
+      });
+    }
+
+    if (openEl && item.magnet) {
+      openEl.dataset.magnet = item.magnet;
+      openEl.addEventListener('click', (event) => {
+        event.preventDefault();
+        const { magnet } = event.currentTarget.dataset;
+        if (!magnet) return;
+        window.open(magnet, '_blank');
+      });
+    }
+
+    fragment.appendChild(card);
+  });
+
+  collectionItemsEl.appendChild(fragment);
+};
+
+const performKeywordSearch = async (keyword) => {
+  // Use the search adapter but WITHOUT saving to history
+  setCollectionDetailStatus(`正在搜索: ${keyword}…`);
+
+  try {
+    const params = new URLSearchParams({ q: keyword });
+    if (state.selectedAdapterId) {
+      params.set('adapter', state.selectedAdapterId);
+    }
+    const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(collectionsState.currentCollectionId)}/search?${params.toString()}`);
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || '搜索失败');
+    }
+
+    const data = await response.json();
+    const results = Array.isArray(data.results) ? data.results : [];
+    const meta = data.meta || {};
+
+    // Show results in a modal-like overlay
+    showKeywordSearchResults(keyword, results, meta);
+  } catch (error) {
+    setCollectionDetailStatus(`搜索失败：${error.message}`, 'error');
+  }
+};
+
+const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
+  // Remove existing overlay if any
+  const existing = document.getElementById('keywordSearchOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'keywordSearchOverlay';
+  overlay.className = 'keyword-search-overlay';
+
+  const content = document.createElement('div');
+  content.className = 'keyword-search-content';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'keyword-search-header';
+  header.innerHTML = `
+    <h3>搜索结果: "${keyword}"</h3>
+    <p class="keyword-search-meta">${meta.adapterName || '适配器'} · ${results.length} 条结果</p>
+    <button type="button" class="keyword-search-close ghost-button">关闭 ✕</button>
+  `;
+
+  header.querySelector('.keyword-search-close').addEventListener('click', () => overlay.remove());
+
+  content.appendChild(header);
+
+  // Results
+  const resultsContainer = document.createElement('div');
+  resultsContainer.className = 'keyword-search-results';
+
+  if (!results.length) {
+    const emptyEl = document.createElement('div');
+    emptyEl.className = 'status';
+    emptyEl.textContent = '未找到匹配的结果。';
+    resultsContainer.appendChild(emptyEl);
+  } else {
+    const fragment = document.createDocumentFragment();
+    results.forEach(result => {
+      const card = keywordSearchResultTemplate.content.cloneNode(true);
+      const titleEl = card.querySelector('.card-title');
+      const badgeEl = card.querySelector('.card-badge');
+      const metaEl = card.querySelector('.card-meta');
+      const actionEl = card.querySelector('.card-action');
+      const openEl = card.querySelector('.card-open');
+
+      titleEl.textContent = result.title || '未命名资源';
+      badgeEl.textContent = result.category || meta.adapterName || '搜索结果';
+
+      const metaEntries = [];
+      if (result.sizeLabel || result.size) {
+        metaEntries.push(['大小', result.sizeLabel || `${result.size} B`]);
+      }
+      const hasSeederInfo = result.seeders !== null && result.seeders !== undefined;
+      const hasLeecherInfo = result.leechers !== null && result.leechers !== undefined;
+      if (hasSeederInfo || hasLeecherInfo) {
+        const seeders = hasSeederInfo ? formatNumber(result.seeders) : '未知';
+        const leechers = hasLeecherInfo ? formatNumber(result.leechers) : '未知';
+        metaEntries.push(['做种 / 下载', `${seeders} / ${leechers}`]);
+      }
+      if (result.infoHash) {
+        metaEntries.push(['Info Hash', result.infoHash]);
+      }
+      if (result.uploaded) {
+        metaEntries.push(['更新时间', formatDate(result.uploaded)]);
+      }
+
+      metaEl.innerHTML = '';
+      metaEntries.forEach(([label, value]) => {
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        dt.textContent = label;
+        dd.textContent = value;
+        metaEl.appendChild(dt);
+        metaEl.appendChild(dd);
+      });
+
+      if (actionEl && result.magnet) {
+        actionEl.dataset.magnet = result.magnet;
+        actionEl.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const { magnet } = event.currentTarget.dataset;
+          if (!magnet) return;
+          try {
+            await navigator.clipboard.writeText(magnet);
+            setCollectionDetailStatus('磁力链接已复制到剪贴板。');
+            setTimeout(() => setCollectionDetailStatus(''), 1800);
+          } catch (error) {
+            window.open(magnet, '_blank');
+          }
+        });
+      }
+
+      if (openEl && result.magnet) {
+        openEl.dataset.magnet = result.magnet;
+        openEl.addEventListener('click', (event) => {
+          event.preventDefault();
+          const { magnet } = event.currentTarget.dataset;
+          if (!magnet) return;
+          window.open(magnet, '_blank');
+        });
+      }
+
+      fragment.appendChild(card);
+    });
+    resultsContainer.appendChild(fragment);
+  }
+
+  content.appendChild(resultsContainer);
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+
+  // Close on backdrop click
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) overlay.remove();
+  });
+};
+
+// ============= EVENT LISTENERS =============
 
 adapterSelect.addEventListener('change', (event) => {
   const value = event.target.value;
@@ -810,6 +1348,153 @@ if (pageInput) {
     if (event.key === 'Enter') {
       goToPageBtn.click();
     }
+  });
+}
+
+// ============= COLLECTIONS EVENT LISTENERS =============
+
+// Create new collection
+if (createCollectionBtn) {
+  createCollectionBtn.addEventListener('click', async () => {
+    const name = prompt('请输入新收藏集名称：');
+    if (!name || !name.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/collections`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || '创建失败');
+      }
+      setCollectionsStatus('收藏集已创建');
+      setTimeout(() => setCollectionsStatus(''), 1800);
+      collectionsState.needsRefresh = true;
+      loadCollections({ force: true });
+    } catch (error) {
+      setCollectionsStatus(`创建失败：${error.message}`, 'error');
+    }
+  });
+}
+
+// Import CSV
+if (importCSVBtn) {
+  importCSVBtn.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const name = prompt('请输入收藏集名称（留空使用文件名）：') || file.name.replace(/\.csv$/i, '') || '导入的集合';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', name.trim());
+
+      setCollectionsStatus('正在导入CSV…');
+
+      try {
+        const response = await fetch(`${API_BASE}/api/collections`, {
+          method: 'POST',
+          body: formData
+        });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || '导入失败');
+        }
+        const data = await response.json();
+        setCollectionsStatus(`成功导入 "${data.collection?.name || name}" (${data.collection?.itemCount || 0} 个条目)`);
+        setTimeout(() => setCollectionsStatus(''), 3000);
+        collectionsState.needsRefresh = true;
+        loadCollections({ force: true });
+      } catch (error) {
+        setCollectionsStatus(`导入失败：${error.message}`, 'error');
+      }
+    });
+    input.click();
+  });
+}
+
+// Back to collections list
+if (backToCollectionsBtn) {
+  backToCollectionsBtn.addEventListener('click', () => {
+    collectionsListView.style.display = 'block';
+    collectionDetailView.style.display = 'none';
+    collectionsState.currentCollectionId = null;
+    collectionsState.currentCollection = null;
+    collectionItemsEl.innerHTML = '';
+    setCollectionDetailStatus('');
+  });
+}
+
+// Delete current collection from detail view
+if (deleteCollectionBtn) {
+  deleteCollectionBtn.addEventListener('click', async () => {
+    const id = collectionsState.currentCollectionId;
+    if (!id) return;
+    const name = collectionsState.currentCollection?.meta?.name || '此收藏集';
+    if (!confirm(`确定要删除「${name}」吗？`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || '删除失败');
+      }
+      // Go back to list
+      backToCollectionsBtn.click();
+      setCollectionsStatus('收藏集已删除');
+      setTimeout(() => setCollectionsStatus(''), 1800);
+      collectionsState.needsRefresh = true;
+      loadCollections({ force: true });
+    } catch (error) {
+      setCollectionDetailStatus(`删除失败：${error.message}`, 'error');
+    }
+  });
+}
+
+// Search within collection
+if (collectionSearchInput) {
+  let searchTimeout;
+  collectionSearchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      collectionsState.searchQuery = collectionSearchInput.value.trim();
+      collectionsState.detailPage = 1;
+      loadCollectionDetail();
+    }, 300);
+  });
+}
+
+// Star filter
+if (collectionStarFilter) {
+  collectionStarFilter.addEventListener('change', () => {
+    collectionsState.starFilter = collectionStarFilter.checked;
+    collectionsState.detailPage = 1;
+    loadCollectionDetail();
+  });
+}
+
+// Collection pagination
+if (collPrevPageBtn) {
+  collPrevPageBtn.addEventListener('click', () => {
+    if (collectionsState.detailPage > 1) {
+      collectionsState.detailPage--;
+      loadCollectionDetail();
+    }
+  });
+}
+
+if (collNextPageBtn) {
+  collNextPageBtn.addEventListener('click', () => {
+    collectionsState.detailPage++;
+    loadCollectionDetail();
   });
 }
 
