@@ -361,10 +361,15 @@ func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request
     }
 
     // Check for sub-routes like /api/collections/{id}/items
-    if strings.HasSuffix(r.URL.Path, "/items") || strings.HasSuffix(r.URL.Path, "/items/") {
-        id = strings.TrimSuffix(id, "/items")
+    if strings.Contains(r.URL.Path, "/items") {
+        id = strings.ReplaceAll(id, "/items", "")
         id = strings.TrimSuffix(id, "/")
         return s.handleCollectionItems(w, r, id)
+    }
+    if strings.Contains(r.URL.Path, "/import") {
+        id = strings.ReplaceAll(id, "/import", "")
+        id = strings.TrimSuffix(id, "/")
+        return s.handleCollectionImportToExisting(w, r, id)
     }
     if strings.Contains(r.URL.Path, "/search") {
         id = strings.ReplaceAll(id, "/search", "")
@@ -398,35 +403,112 @@ func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request
 func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Request, collectionID string) error {
     switch r.Method {
     case http.MethodPost:
-        var item models.CollectionItem
-        if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-            return ClientError{Message: "请提供有效的JSON数据。"}
+        // Attempt to decode as array first
+        var items []models.CollectionItem
+        body, err := io.ReadAll(r.Body)
+        if err != nil {
+            return ClientError{Message: "无法读取请求体"}
         }
-        if strings.TrimSpace(item.Magnet) == "" {
-            return ClientError{Message: "请提供磁力链接。"}
+
+        if err := json.Unmarshal(body, &items); err != nil {
+            // Try decoding as a single item
+            var item models.CollectionItem
+            if err := json.Unmarshal(body, &item); err != nil {
+                return ClientError{Message: "请提供有效的JSON数据(单个对象或数组)。"}
+            }
+            items = []models.CollectionItem{item}
         }
-        if strings.TrimSpace(item.Title) == "" {
-            // Generate title from magnet
-            item.Title = item.Magnet
-            if len(item.Title) > 60 {
-                item.Title = item.Title[:60] + "..."
+
+        if len(items) == 0 {
+            return ClientError{Message: "请提供至少一个条目。"}
+        }
+
+        for i := range items {
+            if strings.TrimSpace(items[i].Magnet) == "" {
+                return ClientError{Message: "所有条目都必须提供磁力链接。"}
+            }
+            if strings.TrimSpace(items[i].Title) == "" {
+                items[i].Title = items[i].Magnet
+                if len(items[i].Title) > 60 {
+                    items[i].Title = items[i].Title[:60] + "..."
+                }
             }
         }
 
-        created, err := s.collections.AddItem(collectionID, item)
-        if err != nil {
+        var created []models.CollectionItem
+        if len(items) == 1 {
+            c, err := s.collections.AddItem(collectionID, items[0])
+            if err != nil {
+                return ClientError{Message: err.Error()}
+            }
+            created = []models.CollectionItem{*c}
+        } else {
+            var err error
+            created, err = s.collections.AddItems(collectionID, items)
+            if err != nil {
+                return ClientError{Message: err.Error()}
+            }
+        }
+
+        payload := map[string]any{
+            "message": fmt.Sprintf("已成功添加 %d 个条目", len(created)),
+            "items":   created,
+        }
+        return s.writeJSON(w, payload, http.StatusCreated)
+
+    case http.MethodDelete:
+        var body struct {
+            Magnets []string `json:"magnets"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+            return ClientError{Message: "请提供要删除的磁力链接列表。"}
+        }
+
+        if len(body.Magnets) == 0 {
+            return ClientError{Message: "请提供至少一个要删除的磁力链接。"}
+        }
+
+        if err := s.collections.DeleteItems(collectionID, body.Magnets); err != nil {
             return ClientError{Message: err.Error()}
         }
 
         payload := map[string]any{
-            "message": "条目已添加",
-            "item":    created,
+            "message": fmt.Sprintf("已成功删除 %d 个条目", len(body.Magnets)),
         }
-        return s.writeJSON(w, payload, http.StatusCreated)
+        return s.writeJSON(w, payload, http.StatusOK)
 
     default:
         return NewMethodNotAllowedError(r.Method)
     }
+}
+
+// handleCollectionImportToExisting handles CSV import into an existing collection
+func (s *APIService) handleCollectionImportToExisting(w http.ResponseWriter, r *http.Request, collectionID string) error {
+    if r.Method != http.MethodPost {
+        return NewMethodNotAllowedError(r.Method)
+    }
+
+    file, _, err := r.FormFile("file")
+    if err != nil {
+        return ClientError{Message: "请上传CSV文件。"}
+    }
+    defer file.Close()
+
+    data, err := io.ReadAll(file)
+    if err != nil {
+        return ClientError{Message: "无法读取上传的文件。"}
+    }
+
+    items, err := s.collections.ImportCSVToCollection(collectionID, string(data))
+    if err != nil {
+        return ClientError{Message: err.Error()}
+    }
+
+    payload := map[string]any{
+        "message": fmt.Sprintf("已成功导入 %d 个条目", len(items)),
+        "count":   len(items),
+    }
+    return s.writeJSON(w, payload, http.StatusOK)
 }
 
 // handleCollectionSearch performs a keyword search using existing adapters but without saving to history

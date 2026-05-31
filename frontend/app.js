@@ -31,6 +31,7 @@ const collectionDetailView = document.getElementById('collectionDetailView');
 const collectionsListEl = document.getElementById('collectionsList');
 const collectionsStatusEl = document.getElementById('collectionsStatus');
 const createCollectionBtn = document.getElementById('createCollectionBtn');
+const addItemBtn = document.getElementById('addItemBtn');
 const importCSVBtn = document.getElementById('importCSVBtn');
 const backToCollectionsBtn = document.getElementById('backToCollectionsBtn');
 const deleteCollectionBtn = document.getElementById('deleteCollectionBtn');
@@ -45,6 +46,18 @@ const collPrevPageBtn = document.getElementById('collPrevPageBtn');
 const collNextPageBtn = document.getElementById('collNextPageBtn');
 const collCurrentPageEl = document.getElementById('collCurrentPage');
 const collTotalPagesEl = document.getElementById('collTotalPages');
+
+const batchActionsBar = document.getElementById('batchActionsBar');
+const selectedCountText = document.getElementById('selectedCountText');
+const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
+
+const addItemModal = document.getElementById('addItemModal');
+const closeModalBtn = document.querySelector('.close-modal-btn');
+const modalTabs = document.querySelectorAll('.modal-tab');
+const modalTabContents = document.querySelectorAll('.modal-tab-content');
+const singleAddForm = document.getElementById('singleAddForm');
+const batchAddForm = document.getElementById('batchAddForm');
 
 const collectionCardTemplate = document.getElementById('collectionCardTemplate');
 const collectionItemTemplate = document.getElementById('collectionItemTemplate');
@@ -105,6 +118,7 @@ const collectionsState = {
   detailPageSize: 20,
   searchQuery: '',
   starFilter: false,
+  selectedMagnets: new Set(),
   keywordSearchResults: {}
 };
 
@@ -924,6 +938,9 @@ const openCollectionDetail = async (id) => {
   collectionsState.detailPage = 1;
   collectionsState.searchQuery = '';
   collectionsState.starFilter = false;
+  collectionsState.selectedMagnets.clear();
+  updateBatchActionsBar();
+  
   collectionSearchInput.value = '';
   collectionStarFilter.checked = false;
 
@@ -1019,6 +1036,7 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
   items.forEach((item, index) => {
     const card = collectionItemTemplate.content.cloneNode(true);
     const article = card.querySelector('.collection-item-card');
+    const checkbox = card.querySelector('.collection-item__checkbox');
     const titleEl = card.querySelector('.collection-item__title');
     const starBtn = card.querySelector('.collection-item__star');
     const keywordsEl = card.querySelector('.collection-item__keywords');
@@ -1026,6 +1044,19 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
     const metaEl = card.querySelector('.card-meta');
     const actionEl = card.querySelector('.card-action');
     const openEl = card.querySelector('.card-open');
+
+    // Selection logic
+    if (checkbox) {
+      checkbox.checked = collectionsState.selectedMagnets.has(item.magnet);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          collectionsState.selectedMagnets.add(item.magnet);
+        } else {
+          collectionsState.selectedMagnets.delete(item.magnet);
+        }
+        updateBatchActionsBar();
+      });
+    }
 
     // Title
     titleEl.textContent = item.title || item.remarks || '未命名条目';
@@ -1122,6 +1153,62 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
   collectionItemsEl.appendChild(fragment);
 };
 
+const updateBatchActionsBar = () => {
+  const count = collectionsState.selectedMagnets.size;
+  if (count > 0) {
+    batchActionsBar.hidden = false;
+    selectedCountText.textContent = `已选择 ${count} 项`;
+  } else {
+    batchActionsBar.hidden = true;
+  }
+};
+
+const openAddItemModal = () => {
+  addItemModal.hidden = false;
+  // Reset tabs
+  modalTabs.forEach(t => t.classList.remove('is-active'));
+  modalTabs[0].classList.add('is-active');
+  modalTabContents.forEach(c => c.hidden = true);
+  modalTabContents[0].hidden = false;
+  // Reset forms
+  singleAddForm.reset();
+  batchAddForm.reset();
+};
+
+const closeAddItemModal = () => {
+  addItemModal.hidden = true;
+};
+
+const performBatchDelete = async () => {
+  const magnets = Array.from(collectionsState.selectedMagnets);
+  if (magnets.length === 0) return;
+
+  if (!confirm(`确定要删除选中的 ${magnets.length} 个条目吗？`)) return;
+
+  setCollectionDetailStatus(`正在删除 ${magnets.length} 个条目…`);
+
+  try {
+    const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(collectionsState.currentCollectionId)}/items`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ magnets })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || '批量删除失败');
+    }
+
+    setCollectionDetailStatus(`成功删除 ${magnets.length} 个条目`);
+    setTimeout(() => setCollectionDetailStatus(''), 2000);
+    
+    collectionsState.selectedMagnets.clear();
+    updateBatchActionsBar();
+    loadCollectionDetail();
+  } catch (error) {
+    setCollectionDetailStatus(`删除失败：${error.message}`, 'error');
+  }
+};
 const performKeywordSearch = async (keyword) => {
   // Use the search adapter but WITHOUT saving to history
   setCollectionDetailStatus(`正在搜索: ${keyword}…`);
@@ -1389,16 +1476,25 @@ if (importCSVBtn) {
       const file = event.target.files[0];
       if (!file) return;
 
-      const name = prompt('请输入收藏集名称（留空使用文件名）：') || file.name.replace(/\.csv$/i, '') || '导入的集合';
-
+      const id = collectionsState.currentCollectionId;
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('name', name.trim());
 
-      setCollectionsStatus('正在导入CSV…');
+      let url = `${API_BASE}/api/collections`;
+      let statusFn = setCollectionsStatus;
+      
+      if (id) {
+        url = `${API_BASE}/api/collections/${encodeURIComponent(id)}/import`;
+        statusFn = setCollectionDetailStatus;
+      } else {
+        const name = prompt('请输入收藏集名称（留空使用文件名）：') || file.name.replace(/\.csv$/i, '') || '导入的集合';
+        formData.append('name', name.trim());
+      }
+
+      statusFn('正在导入CSV…');
 
       try {
-        const response = await fetch(`${API_BASE}/api/collections`, {
+        const response = await fetch(url, {
           method: 'POST',
           body: formData
         });
@@ -1407,12 +1503,17 @@ if (importCSVBtn) {
           throw new Error(errData.error || '导入失败');
         }
         const data = await response.json();
-        setCollectionsStatus(`成功导入 "${data.collection?.name || name}" (${data.collection?.itemCount || 0} 个条目)`);
-        setTimeout(() => setCollectionsStatus(''), 3000);
-        collectionsState.needsRefresh = true;
-        loadCollections({ force: true });
+        statusFn(`已成功导入 ${data.count || data.collection?.itemCount || 0} 个条目`);
+        setTimeout(() => statusFn(''), 3000);
+        
+        if (id) {
+          loadCollectionDetail();
+        } else {
+          collectionsState.needsRefresh = true;
+          loadCollections({ force: true });
+        }
       } catch (error) {
-        setCollectionsStatus(`导入失败：${error.message}`, 'error');
+        statusFn(`导入失败：${error.message}`, 'error');
       }
     });
     input.click();
@@ -1494,6 +1595,114 @@ if (collPrevPageBtn) {
 if (collNextPageBtn) {
   collNextPageBtn.addEventListener('click', () => {
     collectionsState.detailPage++;
+    loadCollectionDetail();
+  });
+}
+
+// Add item modal event listeners
+if (addItemBtn) {
+  addItemBtn.addEventListener('click', openAddItemModal);
+}
+
+if (closeModalBtn) {
+  closeModalBtn.addEventListener('click', closeAddItemModal);
+}
+
+addItemModal.addEventListener('click', (e) => {
+  if (e.target === addItemModal) closeAddItemModal();
+});
+
+modalTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    modalTabs.forEach(t => t.classList.remove('is-active'));
+    tab.classList.add('is-active');
+    const target = tab.dataset.tab;
+    modalTabContents.forEach(c => {
+      c.hidden = c.id !== `${target}Tab`;
+    });
+  });
+});
+
+singleAddForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(singleAddForm);
+  const data = Object.fromEntries(formData.entries());
+  
+  if (!data.magnet || !data.magnet.trim()) return;
+  
+  const id = collectionsState.currentCollectionId;
+  if (!id) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(id)}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || '添加失败');
+    }
+    
+    closeAddItemModal();
+    loadCollectionDetail();
+    setCollectionDetailStatus('条目已添加');
+    setTimeout(() => setCollectionDetailStatus(''), 2000);
+  } catch (error) {
+    alert(`添加失败：${error.message}`);
+  }
+});
+
+batchAddForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(batchAddForm);
+  const magnetsRaw = formData.get('magnets');
+  if (!magnetsRaw) return;
+  
+  const magnets = magnetsRaw.split('\n')
+    .map(m => m.trim())
+    .filter(m => m.startsWith('magnet:?'));
+  
+  if (magnets.length === 0) {
+    alert('请提供有效的磁力链接。');
+    return;
+  }
+  
+  const items = magnets.map(m => ({ magnet: m }));
+  const id = collectionsState.currentCollectionId;
+  if (!id) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/collections/${encodeURIComponent(id)}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(items)
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || '批量添加失败');
+    }
+    
+    closeAddItemModal();
+    loadCollectionDetail();
+    setCollectionDetailStatus(`已成功添加 ${magnets.length} 个条目`);
+    setTimeout(() => setCollectionDetailStatus(''), 3000);
+  } catch (error) {
+    alert(`批量添加失败：${error.message}`);
+  }
+});
+
+// Batch actions
+if (batchDeleteBtn) {
+  batchDeleteBtn.addEventListener('click', performBatchDelete);
+}
+
+if (cancelSelectionBtn) {
+  cancelSelectionBtn.addEventListener('click', () => {
+    collectionsState.selectedMagnets.clear();
+    updateBatchActionsBar();
     loadCollectionDetail();
   });
 }
