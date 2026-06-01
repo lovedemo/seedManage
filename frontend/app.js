@@ -1086,17 +1086,39 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
 
     // Toggle logic
     if (toggleBtn && detailsEl) {
-      if (item.remarks) {
-        remarksFullEl.textContent = item.remarks;
-        toggleBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isExpanded = !detailsEl.hidden;
-          detailsEl.hidden = isExpanded;
-          toggleBtn.textContent = isExpanded ? '展开' : '收起';
-          article.dataset.expanded = !isExpanded;
-        });
-      } else {
+      // Toggle button shows icons
+      toggleBtn.textContent = '▼';
+      
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = !detailsEl.hidden;
+        detailsEl.hidden = isExpanded;
+        toggleBtn.textContent = isExpanded ? '▼' : '▲';
+        article.dataset.expanded = !isExpanded;
+        
+        // If we're closing, and it was a keyword search, clear it
+        if (isExpanded && detailsEl.dataset.searchKeyword) {
+          detailsEl.dataset.searchKeyword = '';
+          // Restore remarks if any
+          if (item.remarks) {
+            remarksFullEl.textContent = item.remarks;
+            remarksFullEl.style.display = '';
+          } else {
+            remarksFullEl.textContent = '';
+            remarksFullEl.style.display = 'none';
+          }
+          // Remove search results
+          const searchRes = detailsEl.querySelector('.compact-search-results');
+          if (searchRes) searchRes.remove();
+        }
+      });
+
+      if (!item.remarks) {
+        // If no remarks, toggle button is only for search results (initially hidden)
         toggleBtn.style.display = 'none';
+      } else {
+        remarksFullEl.textContent = item.remarks;
+        remarksFullEl.style.display = '';
       }
     }
 
@@ -1257,19 +1279,34 @@ const performBatchDelete = async () => {
     setCollectionDetailStatus(`删除失败：${error.message}`, 'error');
   }
 };
-const performKeywordSearch = async (keyword, anchorElement) => {
-  // 检查当前下拉框是否已打开且为同一关键字
-  const dropdownContainer = anchorElement.querySelector('.collection-item__dropdown');
-  if (dropdownContainer && !dropdownContainer.hidden && dropdownContainer.dataset.keyword === keyword) {
-    // Toggle 关闭
-    dropdownContainer.hidden = true;
-    dropdownContainer.innerHTML = '';
-    dropdownContainer.dataset.keyword = '';
-    setCollectionDetailStatus('');
+const performKeywordSearch = async (keyword, article) => {
+  const detailsEl = article.querySelector('.collection-item__details');
+  const toggleBtn = article.querySelector('.collection-item__toggle');
+  
+  if (!detailsEl) return;
+
+  // Toggle off if same keyword is already showing
+  if (!detailsEl.hidden && detailsEl.dataset.searchKeyword === keyword) {
+    detailsEl.hidden = true;
+    detailsEl.dataset.searchKeyword = '';
+    if (toggleBtn) toggleBtn.textContent = '▼';
+    
+    // Restore remarks
+    const remarksFullEl = detailsEl.querySelector('.collection-item__remarks-full');
+    const item = collectionsState.currentCollection?.items?.find(i => i.magnet === article.querySelector('.card-action')?.dataset.magnet);
+    if (item && item.remarks) {
+      remarksFullEl.textContent = item.remarks;
+      remarksFullEl.style.display = '';
+    } else {
+      remarksFullEl.textContent = '';
+      remarksFullEl.style.display = 'none';
+    }
+    
+    const searchRes = detailsEl.querySelector('.compact-search-results');
+    if (searchRes) searchRes.remove();
     return;
   }
 
-  // Use the search adapter but WITHOUT saving to history
   setCollectionDetailStatus(`正在搜索: ${keyword}…`);
 
   try {
@@ -1288,140 +1325,99 @@ const performKeywordSearch = async (keyword, anchorElement) => {
     const results = Array.isArray(data.results) ? data.results : [];
     const meta = data.meta || {};
 
-    // Show results in a dropdown under the anchorElement (the row)
-    showKeywordSearchInDropdown(keyword, results, meta, anchorElement);
+    showCompactKeywordResults(keyword, results, meta, article);
     setCollectionDetailStatus('');
   } catch (error) {
     setCollectionDetailStatus(`搜索失败：${error.message}`, 'error');
   }
 };
 
-const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorElement) => {
-  const dropdownContainer = anchorElement.querySelector('.collection-item__dropdown');
-  if (!dropdownContainer) return;
+const showCompactKeywordResults = (keyword, results, meta, article) => {
+  const detailsEl = article.querySelector('.collection-item__details');
+  const remarksFullEl = article.querySelector('.collection-item__remarks-full');
+  const toggleBtn = article.querySelector('.collection-item__toggle');
+  
+  if (!detailsEl) return;
 
-  // Toggle logic: if clicking the same keyword and it's already open, close it
-  if (!dropdownContainer.hidden && dropdownContainer.dataset.keyword === keyword) {
-    dropdownContainer.hidden = true;
-    dropdownContainer.innerHTML = '';
-    return;
+  detailsEl.dataset.searchKeyword = keyword;
+  detailsEl.hidden = false;
+  if (toggleBtn) {
+    toggleBtn.style.display = '';
+    toggleBtn.textContent = '▲';
   }
 
-  dropdownContainer.dataset.keyword = keyword;
-  dropdownContainer.innerHTML = '';
+  // Hide remarks while showing search results
+  if (remarksFullEl) remarksFullEl.style.display = 'none';
 
-  const dropdown = document.createElement('div');
-  dropdown.className = 'item-dropdown-results';
+  // Remove existing results
+  const existing = detailsEl.querySelector('.compact-search-results');
+  if (existing) existing.remove();
 
-  // Header
+  const container = document.createElement('div');
+  container.className = 'compact-search-results';
+
   const header = document.createElement('div');
-  header.className = 'item-dropdown-results__header';
-  header.innerHTML = `
-    <h4>搜索结果: "${keyword}" <small>(${results.length} 条来自 ${meta.adapterName || '适配器'})</small></h4>
-    <button type="button" class="item-dropdown-results__close" title="收起">×</button>
-  `;
+  header.className = 'compact-search-results__header';
+  header.innerHTML = `搜索结果: "${keyword}" <small>(${results.length} 条来自 ${meta.adapterName || '适配器'})</small>`;
+  container.appendChild(header);
 
-  header.querySelector('.item-dropdown-results__close').addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdownContainer.hidden = true;
-    dropdownContainer.innerHTML = '';
-  });
-
-  dropdown.appendChild(header);
-
-  // Results List
-  const resultsList = document.createElement('div');
-  resultsList.className = 'dropdown-results-list';
-
-  if (!results.length) {
-    const emptyEl = document.createElement('div');
-    emptyEl.className = 'status';
-    emptyEl.textContent = '未找到匹配的结果。';
-    resultsList.appendChild(emptyEl);
+  if (results.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'compact-search-empty';
+    empty.textContent = '未找到结果';
+    container.appendChild(empty);
   } else {
-    const fragment = document.createDocumentFragment();
     results.forEach(result => {
-      const card = keywordSearchResultTemplate.content.cloneNode(true);
-      const titleEl = card.querySelector('.card-title');
-      const badgeEl = card.querySelector('.card-badge');
-      const metaEl = card.querySelector('.card-meta');
-      const actionEl = card.querySelector('.card-action');
-      const openEl = card.querySelector('.card-open');
+      const item = keywordSearchResultTemplate.content.cloneNode(true);
+      const titleEl = item.querySelector('.compact-search-title');
+      const metaEl = item.querySelector('.compact-search-meta');
+      const actionEl = item.querySelector('.card-action');
+      const openEl = item.querySelector('.card-open');
 
       titleEl.textContent = result.title || '未命名资源';
-      badgeEl.textContent = result.category || meta.adapterName || '搜索结果';
-
-      const metaEntries = [];
-      if (result.sizeLabel || result.size) {
-        metaEntries.push(['大小', result.sizeLabel || `${result.size} B`]);
-      }
-      const hasSeederInfo = result.seeders !== null && result.seeders !== undefined;
-      const hasLeecherInfo = result.leechers !== null && result.leechers !== undefined;
-      if (hasSeederInfo || hasLeecherInfo) {
-        const seeders = hasSeederInfo ? formatNumber(result.seeders) : '未知';
-        const leechers = hasLeecherInfo ? formatNumber(result.leechers) : '未知';
-        metaEntries.push(['做种 / 下载', `${seeders} / ${leechers}`]);
-      }
+      titleEl.title = result.title || '未命名资源';
       
-      metaEl.innerHTML = '';
-      metaEntries.forEach(([label, value]) => {
-        const dt = document.createElement('dt');
-        const dd = document.createElement('dd');
-        dt.textContent = label;
-        dd.textContent = value;
-        metaEl.appendChild(dt);
-        metaEl.appendChild(dd);
-      });
+      const metaParts = [];
+      if (result.sizeLabel || result.size) {
+        metaParts.push(result.sizeLabel || `${result.size} B`);
+      }
+      if (result.seeders !== null && result.seeders !== undefined) {
+        metaParts.push(`做种: ${formatNumber(result.seeders)}`);
+      }
+      metaEl.textContent = metaParts.join(' · ');
 
-      if (actionEl) {
-        if (result.magnet && result.magnet.startsWith('magnet:?')) {
-          actionEl.dataset.magnet = result.magnet;
-          actionEl.style.display = '';
-          actionEl.addEventListener('click', async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const { magnet } = event.currentTarget.dataset;
-            if (!magnet) return;
-            try {
-              await navigator.clipboard.writeText(magnet);
-              setCollectionDetailStatus('磁力链接已复制到剪贴板。');
-              setTimeout(() => setCollectionDetailStatus(''), 1800);
-            } catch (error) {
-              window.open(magnet, '_blank');
-            }
-          });
-        } else {
-          actionEl.style.display = 'none';
-        }
+      if (result.magnet) {
+        actionEl.dataset.magnet = result.magnet;
+        openEl.dataset.magnet = result.magnet;
+        
+        actionEl.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            await navigator.clipboard.writeText(result.magnet);
+            setCollectionDetailStatus('磁力链接已复制');
+            setTimeout(() => setCollectionDetailStatus(''), 1500);
+          } catch (err) {
+            window.open(result.magnet, '_blank');
+          }
+        });
+
+        openEl.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(result.magnet, '_blank');
+        });
+      } else {
+        actionEl.style.display = 'none';
+        openEl.style.display = 'none';
       }
 
-      if (openEl) {
-        if (result.magnet && result.magnet.startsWith('magnet:?')) {
-          openEl.dataset.magnet = result.magnet;
-          openEl.style.display = '';
-          openEl.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const { magnet } = event.currentTarget.dataset;
-            if (!magnet) return;
-            window.open(magnet, '_blank');
-          });
-        } else {
-          openEl.style.display = 'none';
-        }
-      }
-
-      fragment.appendChild(card);
+      container.appendChild(item);
     });
-    resultsList.appendChild(fragment);
   }
 
-  dropdown.appendChild(resultsList);
-  dropdownContainer.appendChild(dropdown);
-  dropdownContainer.hidden = false;
-  
-  // Scroll into view if needed
-  dropdownContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  detailsEl.appendChild(container);
+  article.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
 const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
@@ -1745,16 +1741,18 @@ batchAddForm.addEventListener('submit', async (e) => {
   const magnetsRaw = formData.get('magnets');
   if (!magnetsRaw) return;
   
-  const magnets = magnetsRaw.split('\n')
-    .map(m => m.trim())
-    .filter(m => m.length > 0);
+  const items = magnetsRaw.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => {
+      const parts = line.split(',').map(s => s.trim());
+      return {
+        magnet: parts[0] || '',
+        keywords: parts[1] || '',
+        remarks: parts[2] || ''
+      };
+    });
   
-  if (magnets.length === 0) {
-    alert('请提供有效的条目列表。');
-    return;
-  }
-  
-  const items = magnets.map(m => ({ magnet: m }));
   const id = collectionsState.currentCollectionId;
   if (!id) return;
 
@@ -1772,7 +1770,7 @@ batchAddForm.addEventListener('submit', async (e) => {
     
     closeAddItemModal();
     loadCollectionDetail();
-    setCollectionDetailStatus(`已成功添加 ${magnets.length} 个条目`);
+    setCollectionDetailStatus(`已成功添加 ${items.length} 个条目`);
     setTimeout(() => setCollectionDetailStatus(''), 3000);
   } catch (error) {
     alert(`批量添加失败：${error.message}`);
