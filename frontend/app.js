@@ -1476,9 +1476,19 @@ if (importCSVBtn) {
       const file = event.target.files[0];
       if (!file) return;
 
+      const buffer = await file.arrayBuffer();
+      let text;
+      try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+      } catch (e) {
+        text = new TextDecoder('gbk').decode(buffer);
+      }
+      const utf8Blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+      const utf8File = new File([utf8Blob], file.name, { type: 'text/csv' });
+
       const id = collectionsState.currentCollectionId;
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', utf8File);
 
       let url = `${API_BASE}/api/collections`;
       let statusFn = setCollectionsStatus;
