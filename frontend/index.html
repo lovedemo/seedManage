@@ -210,26 +210,29 @@
 
     <template id="collectionItemTemplate">
       <article class="collection-item-card" data-starred="false">
-        <div class="collection-item__selection">
-          <input type="checkbox" class="collection-item__checkbox" />
-        </div>
-        <div class="collection-item__content">
-          <header class="collection-item__header">
-            <h3 class="collection-item__title"></h3>
-          </header>
-          <div class="collection-item__keywords"></div>
-          <div class="collection-item__remarks"></div>
-          <div class="collection-item__meta-actions">
-            <dl class="card-meta"></dl>
-            <footer class="card-footer">
-              <a class="card-action" target="_blank" rel="noopener noreferrer">复制</a>
-              <a class="card-open">打开</a>
-            </footer>
-            <div class="collection-item__controls">
-              <button type="button" class="collection-item__star" title="星标">☆</button>
+        <div class="collection-item__row">
+          <div class="collection-item__selection">
+            <input type="checkbox" class="collection-item__checkbox" />
+          </div>
+          <div class="collection-item__content">
+            <header class="collection-item__header">
+              <h3 class="collection-item__title"></h3>
+            </header>
+            <div class="collection-item__keywords"></div>
+            <div class="collection-item__remarks"></div>
+            <div class="collection-item__meta-actions">
+              <dl class="card-meta"></dl>
+              <footer class="card-footer">
+                <a class="card-action" target="_blank" rel="noopener noreferrer">复制</a>
+                <a class="card-open">打开</a>
+              </footer>
+              <div class="collection-item__controls">
+                <button type="button" class="collection-item__star" title="星标">☆</button>
+              </div>
             </div>
           </div>
         </div>
+        <div class="collection-item__dropdown" hidden></div>
       </article>
     </template>
 
