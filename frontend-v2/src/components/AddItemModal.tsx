@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, AlertCircle } from 'lucide-react';
 import api from '../api';
 
 interface AddItemModalProps {
@@ -12,6 +12,7 @@ interface AddItemModalProps {
 const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collectionId, onSuccess }) => {
   const [tab, setTab] = useState<'single' | 'batch'>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     magnet: '',
     title: '',
@@ -27,18 +28,20 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
     if (!formData.magnet.trim()) return;
 
     setIsSubmitting(true);
+    setError(null);
     try {
       await api.post(`/api/collections/${collectionId}/items`, {
         magnet: formData.magnet,
         title: formData.title,
-        keywords: formData.keywords ? formData.keywords.split(' ').filter(k => k) : [],
+        keywords: formData.keywords,
         remarks: formData.remarks
       });
       setFormData({ magnet: '', title: '', keywords: '', remarks: '' });
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add item', error);
+      setError(error.response?.data?.error || error.message || '添加条目失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,14 +52,18 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
     if (!batchContent.trim()) return;
 
     setIsSubmitting(true);
+    setError(null);
     try {
       const lines = batchContent.split('\n').filter(l => l.trim());
       const items = lines.map(line => {
-        const [magnet, keywords, remarks] = line.split(',').map(s => s.trim());
+        const parts = line.split(',');
+        const magnet = parts[0]?.trim();
+        const keywords = parts[1]?.trim() || '';
+        const remarks = parts[2]?.trim() || '';
         return {
           magnet,
-          keywords: keywords ? keywords.split(' ').filter(k => k) : [],
-          remarks: remarks || ''
+          keywords,
+          remarks
         };
       });
 
@@ -66,8 +73,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
       setBatchContent('');
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to batch add items', error);
+      setError(error.response?.data?.error || error.message || '批量添加失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +83,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={onClose}></div>
       <div className="glass-dark border border-white/80 w-full max-w-xl rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
         <header className="p-4 border-b border-slate-100 flex justify-between items-center bg-white/50">
           <h3 className="font-bold text-lg text-slate-800">添加新条目</h3>
@@ -100,6 +108,12 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
         </div>
 
         <div className="p-6 bg-white/30">
+          {error && (
+            <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-600 p-3 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+              <AlertCircle size={18} />
+              <p className="font-medium text-xs">{error}</p>
+            </div>
+          )}
           {tab === 'single' ? (
             <form onSubmit={handleSingleSubmit} className="space-y-4">
               <div className="space-y-1.5">

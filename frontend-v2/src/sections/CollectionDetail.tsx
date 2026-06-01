@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ArrowLeft, Search, Trash2, Star, ChevronLeft, ChevronRight, 
   Loader2, Plus, Import, CheckSquare, Square, 
-  ExternalLink, Copy, ChevronDown, ChevronUp
+  ExternalLink, Copy, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import api from '../api';
 import type { CollectionItem } from '../types';
@@ -30,9 +30,11 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const endpoint = searchQuery 
         ? `/api/collections/${collectionId}/items/search`
@@ -48,8 +50,9 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
       
       setItems(response.data.items || []);
       setTotalPages(response.data.totalPages || 1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch items', error);
+      setError(error.response?.data?.error || error.message || '获取条目失败');
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +64,15 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
 
   const deleteItems = async (ids: string[]) => {
     if (!window.confirm(`确定要删除选中的 ${ids.length} 个条目吗？`)) return;
+    setError(null);
     try {
       await api.delete(`/api/collections/${collectionId}/items`, { data: { magnets: ids } });
       setItems(items.filter(item => !ids.includes(item.magnet)));
       setSelectedIds(new Set());
       onRefreshCollections();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete items', error);
+      setError(error.response?.data?.error || error.message || '删除条目失败');
     }
   };
 
@@ -187,6 +192,13 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
         </label>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+          <AlertCircle size={20} />
+          <p className="font-medium text-sm">{error}</p>
+        </div>
+      )}
+
       {selectedIds.size > 0 && (
         <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 shadow-sm">
           <span className="text-sm font-bold text-blue-600 ml-2">已选择 {selectedIds.size} 项</span>
@@ -244,7 +256,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                         {item.title || '未命名资源'}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        {item.keywords?.map(kw => (
+                        {item.keywords?.split(' ').filter(kw => kw).map(kw => (
                           <span key={kw} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold">{kw}</span>
                         ))}
                       </div>

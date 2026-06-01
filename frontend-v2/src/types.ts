@@ -57,7 +57,7 @@ export interface Collection {
 }
 
 export interface CollectionItem extends SearchResult {
-  keywords?: string[];
+  keywords?: string;
   remarks?: string;
   starred?: boolean;
   addedAt: string;
