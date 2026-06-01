@@ -360,7 +360,13 @@ func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request
         return ClientError{Message: "请提供集合ID。"}
     }
 
-    // Check for sub-routes like /api/collections/{id}/items
+    // Check for sub-routes
+    if strings.Contains(r.URL.Path, "/search") {
+        id = strings.ReplaceAll(id, "/search", "")
+        id = strings.ReplaceAll(id, "/items", "")
+        id = strings.TrimSuffix(id, "/")
+        return s.handleCollectionSearch(w, r, id)
+    }
     if strings.Contains(r.URL.Path, "/items") {
         id = strings.ReplaceAll(id, "/items", "")
         id = strings.TrimSuffix(id, "/")
@@ -370,11 +376,6 @@ func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request
         id = strings.ReplaceAll(id, "/import", "")
         id = strings.TrimSuffix(id, "/")
         return s.handleCollectionImportToExisting(w, r, id)
-    }
-    if strings.Contains(r.URL.Path, "/search") {
-        id = strings.ReplaceAll(id, "/search", "")
-        id = strings.TrimSuffix(id, "/")
-        return s.handleCollectionSearch(w, r, id)
     }
 
     switch r.Method {
@@ -402,6 +403,20 @@ func (s *APIService) handleCollectionByID(w http.ResponseWriter, r *http.Request
 // handleCollectionItems handles adding and listing items within a collection
 func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Request, collectionID string) error {
     switch r.Method {
+    case http.MethodGet:
+        cf, err := s.collections.Get(collectionID)
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+        
+        // Return only items and total count for this endpoint
+        payload := map[string]any{
+            "items":      cf.Items,
+            "totalCount": len(cf.Items),
+            "totalPages": 1, // Store doesn't support pagination yet, return everything as 1 page
+        }
+        return s.writeJSON(w, payload, http.StatusOK)
+
     case http.MethodPost:
         // Attempt to decode as array first
         var items []models.CollectionItem

@@ -48,22 +48,22 @@ const App: React.FC = () => {
   const currentAdapter = adapters.find(a => a.id === selectedAdapterId);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans">
-      <header className="sticky top-0 z-10 glass-dark border-b border-white/10 px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-yellow-50 text-slate-800 font-sans transition-colors duration-500">
+      <header className="sticky top-0 z-10 glass border-b border-white/20 px-4 py-3">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               本地磁力搜索预览
             </h1>
-            <p className="text-xs text-slate-400">快速获取磁力预览卡片</p>
+            <p className="text-xs text-slate-500 font-medium">快速获取磁力预览卡片</p>
           </div>
           
-          <nav className="flex bg-slate-800/50 p-1 rounded-lg self-start md:self-center">
+          <nav className="flex bg-slate-200/50 p-1 rounded-xl self-start md:self-center border border-white/50">
             <button
               onClick={() => setActiveTab('home')}
               className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                activeTab === 'home' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:text-slate-200"
+                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all",
+                activeTab === 'home' ? "bg-white text-blue-600 shadow-sm border border-white/50" : "text-slate-500 hover:text-slate-800"
               )}
             >
               <Search size={16} />
@@ -72,8 +72,8 @@ const App: React.FC = () => {
             <button
               onClick={() => setActiveTab('history')}
               className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                activeTab === 'history' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:text-slate-200"
+                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all",
+                activeTab === 'history' ? "bg-white text-blue-600 shadow-sm border border-white/50" : "text-slate-500 hover:text-slate-800"
               )}
             >
               <History size={16} />
@@ -82,8 +82,8 @@ const App: React.FC = () => {
             <button
               onClick={() => setActiveTab('collections')}
               className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                activeTab === 'collections' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:text-slate-200"
+                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all",
+                activeTab === 'collections' ? "bg-white text-blue-600 shadow-sm border border-white/50" : "text-slate-500 hover:text-slate-800"
               )}
             >
               <FolderHeart size={16} />
@@ -106,13 +106,13 @@ const App: React.FC = () => {
         {activeTab === 'collections' && <CollectionsSection />}
       </main>
 
-      <footer className="border-t border-white/5 bg-slate-900/50 py-4 px-6 text-center md:text-left">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2 text-xs text-slate-500">
+      <footer className="border-t border-white/20 bg-white/30 backdrop-blur-md py-4 px-6 text-center md:text-left">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2 text-xs text-slate-500 font-medium">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             <span>前端已连接至后端</span>
             <span className="mx-1">•</span>
-            <span>当前适配器: <strong className="text-slate-300">{currentAdapter?.name || '加载中...'}</strong></span>
+            <span>当前适配器: <strong className="text-slate-700">{currentAdapter?.name || '加载中...'}</strong></span>
           </div>
           <div className="flex items-center gap-3">
              <span>{currentAdapter?.endpoint === 'local-data' ? '本地数据' : currentAdapter?.endpoint || ''}</span>

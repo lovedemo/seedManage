@@ -75,73 +75,73 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="glass-dark border border-white/10 w-full max-w-xl rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200">
-        <header className="p-4 border-b border-white/5 flex justify-between items-center">
-          <h3 className="font-bold text-lg text-slate-100">添加新条目</h3>
-          <button onClick={onClose} className="p-1 hover:bg-white/5 rounded-lg text-slate-400">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="glass-dark border border-white/80 w-full max-w-xl rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
+        <header className="p-4 border-b border-slate-100 flex justify-between items-center bg-white/50">
+          <h3 className="font-bold text-lg text-slate-800">添加新条目</h3>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
             <X size={20} />
           </button>
         </header>
 
-        <div className="p-4 flex gap-4 border-b border-white/5">
+        <div className="p-4 flex gap-4 border-b border-slate-100 bg-white/30">
            <button 
               onClick={() => setTab('single')}
-              className={`flex-grow py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'single' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-grow py-2 text-sm font-bold rounded-lg transition-all ${tab === 'single' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
            >
               手动添加
            </button>
            <button 
               onClick={() => setTab('batch')}
-              className={`flex-grow py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'batch' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-grow py-2 text-sm font-bold rounded-lg transition-all ${tab === 'batch' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
            >
               批量添加
            </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 bg-white/30">
           {tab === 'single' ? (
             <form onSubmit={handleSingleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-400">磁力链接 (Magnet)</label>
+                <label className="text-sm font-semibold text-slate-500">磁力链接 (Magnet)</label>
                 <input
                   required
                   type="text"
                   value={formData.magnet}
                   onChange={(e) => setFormData({...formData, magnet: e.target.value})}
                   placeholder="magnet:?xt=..."
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/40 outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500/40 outline-none shadow-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-400">标题 (可选)</label>
+                <label className="text-sm font-semibold text-slate-500">标题 (可选)</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
                   placeholder="如果不填将自动生成"
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/40 outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500/40 outline-none shadow-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-400">关键字 (可选)</label>
+                  <label className="text-sm font-semibold text-slate-500">关键字 (可选)</label>
                   <input
                     type="text"
                     value={formData.keywords}
                     onChange={(e) => setFormData({...formData, keywords: e.target.value})}
                     placeholder="空格分隔"
-                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/40 outline-none"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500/40 outline-none shadow-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-400">备注 (可选)</label>
+                  <label className="text-sm font-semibold text-slate-500">备注 (可选)</label>
                   <input
                     type="text"
                     value={formData.remarks}
                     onChange={(e) => setFormData({...formData, remarks: e.target.value})}
                     placeholder="私人备注"
-                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/40 outline-none"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500/40 outline-none shadow-sm"
                   />
                 </div>
               </div>
@@ -149,7 +149,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
                 <button
                   type="submit"
                   disabled={isSubmitting || !formData.magnet}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 px-8 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 px-8 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-md flex items-center gap-2"
                 >
                   {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                   添加到集合
@@ -159,21 +159,21 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
           ) : (
             <form onSubmit={handleBatchSubmit} className="space-y-4">
                <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-400">条目列表 (每行一个)</label>
+                <label className="text-sm font-semibold text-slate-500">条目列表 (每行一个)</label>
                 <textarea
                   rows={8}
                   value={batchContent}
                   onChange={(e) => setBatchContent(e.target.value)}
                   placeholder={"magnet:?xt=...\nmagnet:?xt=..., 关键字, 备注"}
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500/40 outline-none font-mono"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500/40 outline-none font-mono shadow-sm"
                 />
               </div>
-              <p className="text-[10px] text-slate-500">格式：磁链 [, 关键字, 备注]。关键字和备注可选，以逗号分隔。</p>
+              <p className="text-[10px] text-slate-500 font-medium">格式：磁链 [, 关键字, 备注]。关键字和备注可选，以逗号分隔。</p>
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
                   disabled={isSubmitting || !batchContent.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 px-8 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 px-8 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-md flex items-center gap-2"
                 >
                   {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                   批量添加

@@ -15,7 +15,7 @@ const CollectionsSection: React.FC = () => {
     setIsLoading(true);
     try {
       const response = await api.get('/api/collections');
-      setCollections(response.data || []);
+      setCollections(response.data.collections || []);
     } catch (error) {
       console.error('Failed to fetch collections', error);
     } finally {
@@ -41,7 +41,7 @@ const CollectionsSection: React.FC = () => {
   const createCollection = async (name: string) => {
     try {
       const response = await api.post('/api/collections', { name });
-      setCollections([...collections, response.data]);
+      setCollections([...collections, response.data.collection]);
       setIsAddModalOpen(false);
     } catch (error) {
       console.error('Failed to create collection', error);
@@ -64,17 +64,17 @@ const CollectionsSection: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-pink-500/10 rounded-xl">
-            <FolderHeart className="text-pink-400" size={24} />
+          <div className="p-2 bg-pink-100 rounded-xl">
+            <FolderHeart className="text-pink-500" size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-100">收藏集</h2>
-            <p className="text-xs text-slate-500">管理和组织你的磁力链接收藏。</p>
+            <h2 className="text-xl font-bold text-slate-800">收藏集</h2>
+            <p className="text-xs text-slate-500 font-medium">管理和组织你的磁力链接收藏。</p>
           </div>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-semibold text-white transition-all shadow-lg shadow-blue-900/20"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-blue-500/10 active:scale-95"
         >
           <Plus size={18} />
           新建收藏集
@@ -90,11 +90,11 @@ const CollectionsSection: React.FC = () => {
           collections.map((collection) => (
             <div 
               key={collection.id} 
-              className="glass p-5 rounded-2xl border border-white/5 hover:border-white/20 transition-all group relative cursor-pointer"
+              className="glass p-5 rounded-2xl border border-white/80 hover:border-blue-200 transition-all group relative cursor-pointer shadow-sm hover:shadow-md"
               onClick={() => setSelectedCollectionId(collection.id)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-white/5 rounded-xl group-hover:bg-blue-500/10 group-hover:text-blue-400 transition-colors">
+                <div className="p-3 bg-slate-100 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                   <FolderHeart size={28} />
                 </div>
                 <button
@@ -102,13 +102,13 @@ const CollectionsSection: React.FC = () => {
                     e.stopPropagation();
                     deleteCollection(collection.id);
                   }}
-                  className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <Trash2 size={18} />
                 </button>
               </div>
-              <h3 className="font-bold text-slate-100 text-lg mb-1">{collection.name}</h3>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
+              <h3 className="font-bold text-slate-800 text-lg mb-1">{collection.name}</h3>
+              <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                 <span>{collection.itemCount} 条目</span>
                 <span>•</span>
                 <span>更新于 {new Date(collection.updatedAt).toLocaleDateString()}</span>
@@ -117,7 +117,7 @@ const CollectionsSection: React.FC = () => {
           ))
         ) : (
           <div className="col-span-full text-center py-20 glass rounded-2xl">
-            <p className="text-slate-500">暂无收藏集，点击右上角新建。</p>
+            <p className="text-slate-500 font-medium">暂无收藏集，点击右上角新建。</p>
           </div>
         )}
       </div>

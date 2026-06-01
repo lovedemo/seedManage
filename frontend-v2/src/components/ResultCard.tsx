@@ -34,13 +34,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, meta }) => {
   const badgeText = result.category || (meta.mode === 'magnet' ? '磁力链接' : adapterLabel);
 
   return (
-    <article className="glass bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-300 rounded-2xl overflow-hidden border border-white/5 flex flex-col h-full group">
+    <article className="glass bg-white/70 hover:bg-white/90 transition-all duration-300 rounded-2xl overflow-hidden border border-white/80 flex flex-col h-full group shadow-sm hover:shadow-md">
       <header className="p-4 pb-2">
         <div className="flex justify-between items-start gap-3 mb-2">
-          <h3 className="text-sm font-semibold text-slate-100 line-clamp-2 leading-relaxed group-hover:text-blue-300 transition-colors">
+          <h3 className="text-sm font-bold text-slate-800 line-clamp-2 leading-relaxed group-hover:text-blue-600 transition-colors">
             {result.title || '未命名资源'}
           </h3>
-          <span className="shrink-0 bg-blue-500/10 text-blue-400 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md border border-blue-500/20">
+          <span className="shrink-0 bg-blue-50 text-blue-600 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md border border-blue-100">
             {badgeText}
           </span>
         </div>
@@ -49,37 +49,37 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, meta }) => {
       <div className="px-4 py-2 flex-grow space-y-2">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           { (result.sizeLabel || result.size) && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-              <HardDrive size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+              <HardDrive size={12} className="text-slate-400" />
               <span>{result.sizeLabel || `${result.size} B`}</span>
             </div>
           )}
           
           {(result.seeders !== undefined || result.leechers !== undefined) && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-              <Users size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+              <Users size={12} className="text-slate-400" />
               <span>{result.seeders ?? '?'}/{result.leechers ?? '?'}</span>
             </div>
           )}
 
           {result.uploaded && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 col-span-2">
-              <Calendar size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium col-span-2">
+              <Calendar size={12} className="text-slate-400" />
               <span>{new Date(result.uploaded).toLocaleString()}</span>
             </div>
           )}
 
           {result.source && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 col-span-2">
-              <Database size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium col-span-2">
+              <Database size={12} className="text-slate-400" />
               <span>{result.source}</span>
             </div>
           )}
         </div>
 
         {result.infoHash && (
-          <div className="mt-2 pt-2 border-t border-white/5">
-             <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono break-all">
+          <div className="mt-2 pt-2 border-t border-slate-100">
+             <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono break-all font-medium">
                 <Hash size={10} className="shrink-0" />
                 <span>{result.infoHash}</span>
              </div>
@@ -87,13 +87,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, meta }) => {
         )}
       </div>
 
-      <footer className="p-3 bg-white/[0.02] border-t border-white/5 grid grid-cols-2 gap-2 mt-auto">
+      <footer className="p-3 bg-white/30 border-t border-slate-100 grid grid-cols-2 gap-2 mt-auto">
         <button
           onClick={handleCopy}
-          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
             copied 
-              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/5'
+              ? 'bg-green-50 text-green-600 border border-green-100' 
+              : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm'
           }`}
         >
           <Copy size={14} />
@@ -101,7 +101,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, meta }) => {
         </button>
         <button
           onClick={handleOpen}
-          className="flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-all"
+          className="flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/10 transition-all"
         >
           <ExternalLink size={14} />
           打开资源
