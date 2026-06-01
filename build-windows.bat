@@ -5,16 +5,21 @@ echo   本地磁力搜索服务 - Windows 打包脚本
 echo ====================================
 echo.
 
+echo [1/5] 编译新前端 (frontend-v2)...
+cd /d "%~dp0frontend-v2"
+call npm install
+call npm run build
+
 cd /d "%~dp0backend"
 
-echo [1/4] 准备构建目录...
+echo [2/5] 准备构建目录...
 if not exist bin mkdir bin
 
-echo [2/4] 复制前端文件到编译目录...
+echo [3/5] 复制前端文件到编译目录...
 if exist cmd\server\frontend rmdir /s /q cmd\server\frontend
-xcopy /E /I /Y ..\frontend cmd\server\frontend >nul
+xcopy /E /I /Y ..\frontend-v2\dist cmd\server\frontend >nul
 
-echo [3/4] 编译 Windows 可执行文件...
+echo [4/5] 编译 Windows 可执行文件...
 set GOOS=windows
 set GOARCH=amd64
 go build -ldflags="-s -w" -o bin/seedmanage-windows-amd64.exe ./cmd/server
@@ -27,7 +32,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [4/4] 创建发布包...
+echo [5/5] 创建发布包...
 cd ..
 
 if not exist release mkdir release

@@ -23,7 +23,7 @@ rm -rf backend/bin
 rm -rf backend/cmd/server/frontend
 
 echo "[2/5] 准备前端文件..."
-cp -r frontend/ backend/cmd/server/
+echo "跳过手动复制，Dockerfile 将使用多阶段构建处理 frontend-v2"
 
 echo "[3/5] 构建Docker镜像..."
 echo "镜像名称: $FULL_IMAGE_NAME"

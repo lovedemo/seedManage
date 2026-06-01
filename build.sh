@@ -6,14 +6,17 @@ echo "  本地磁力搜索服务 - 跨平台构建脚本"
 echo "===================================="
 echo ""
 
+echo "[1/4] 编译新前端 (frontend-v2)..."
+(cd frontend-v2 && npm install && npm run build)
+
 cd backend
 
-echo "[1/3] 准备构建目录..."
+echo "[2/4] 准备构建目录..."
 mkdir -p bin
 rm -rf cmd/server/frontend
-cp -r ../frontend cmd/server/
+cp -r ../frontend-v2/dist cmd/server/frontend
 
-echo "[2/3] 编译可执行文件..."
+echo "[3/4] 编译可执行文件..."
 
 # Linux amd64
 echo "  - 编译 Linux amd64..."
@@ -32,7 +35,7 @@ echo "  - 编译 Windows amd64..."
 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/seedmanage-windows-amd64.exe ./cmd/server
 
 echo ""
-echo "[3/3] 创建发布包..."
+echo "[4/4] 创建发布包..."
 cd ..
 
 mkdir -p release
