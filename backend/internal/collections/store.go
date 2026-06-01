@@ -258,7 +258,7 @@ func (s *Store) parseCSV(csvContent string) ([]models.CollectionItem, error) {
         }
         magnet := strings.TrimSpace(row[0])
         if magnet == "" {
-            continue
+            return nil, fmt.Errorf("collections: 磁力链接不能为空 (行 %d)", i+1)
         }
 
         keywords := ""

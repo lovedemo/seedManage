@@ -1418,11 +1418,10 @@ body::after {
 }
 
 .collection-item__header {
-  flex: 2;
+  flex: 1.5;
   margin: 0;
   min-width: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   position: relative;
   z-index: 2;
@@ -1432,84 +1431,102 @@ body::after {
   margin: 0;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.5;
-  word-break: break-word;
+  line-height: 1.2;
+  word-break: break-all;
   flex: 1;
-  font-size: 1.05rem;
-  white-space: normal;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .collection-item__keywords {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   position: relative;
   z-index: 2;
   flex: 1;
   justify-content: flex-start;
+  overflow: hidden;
 }
 
 .keyword-chip {
   display: inline-block;
-  padding: 5px 14px;
+  padding: 2px 10px;
   border-radius: var(--radius-pill);
   background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(0, 184, 148, 0.1));
   color: var(--accent-alt-1);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid rgba(108, 92, 231, 0.2);
   cursor: pointer;
   transition: all var(--transition);
   user-select: none;
-}
-
-.keyword-chip:hover {
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(0, 184, 148, 0.2));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
-}
-
-.collection-item__remarks {
-  display: none; /* Hide remarks in row view */
+  white-space: nowrap;
 }
 
 .collection-item__meta-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .collection-item-card .card-meta {
   display: flex;
   gap: 12px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   position: relative;
   z-index: 2;
-}
-
-.collection-item-card .card-meta dt {
-  display: none; /* Hide "Added at" label to save space */
-}
-
-.collection-item-card .card-meta dd {
-  margin: 0;
-  white-space: pre-line;
-  word-break: break-word;
-  color: var(--text-primary);
 }
 
 .collection-item-card .card-footer {
   margin: 0;
   gap: 8px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 2;
+}
+
+.collection-item-card .card-action, 
+.collection-item-card .card-open {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.collection-item__toggle {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.collection-item__toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 107, 157, 0.05);
+}
+
+.collection-item__details {
+  background: rgba(0, 0, 0, 0.02);
+  padding: 12px 24px 16px 60px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.collection-item__remarks-full {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .collection-item__controls {
@@ -1654,20 +1671,16 @@ body::after {
   }
 
   .collection-item__row {
-    padding: 16px;
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 12px 16px;
+    flex-direction: row;
+    align-items: center;
   }
 
   .collection-item__content {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     width: 100%;
     gap: 12px;
-  }
-
-  .collection-item__header {
-    width: 100%;
   }
 
   .collection-item__title {
@@ -1836,13 +1849,6 @@ body::after {
   height: 20px;
   cursor: pointer;
   accent-color: var(--accent);
-}
-
-.collection-item__content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
 
 /* Modal Styles */
