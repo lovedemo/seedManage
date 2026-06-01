@@ -257,9 +257,6 @@ func (s *Store) parseCSV(csvContent string) ([]models.CollectionItem, error) {
             continue
         }
         magnet := strings.TrimSpace(row[0])
-        if magnet == "" {
-            return nil, fmt.Errorf("collections: 磁力链接不能为空 (行 %d)", i+1)
-        }
 
         keywords := ""
         if len(row) > 1 {
@@ -270,12 +267,16 @@ func (s *Store) parseCSV(csvContent string) ([]models.CollectionItem, error) {
             remarks = strings.TrimSpace(row[2])
         }
 
-        // Use remarks as title if available, otherwise first few chars of magnet
+        // 标题回退链：remarks → magnet（前60字符）→ "未命名条目"
         title := remarks
         if title == "" {
-            title = magnet
-            if len(title) > 60 {
-                title = title[:60] + "..."
+            if magnet != "" {
+                title = magnet
+                if len(title) > 60 {
+                    title = title[:60] + "..."
+                }
+            } else {
+                title = "未命名条目"
             }
         }
 

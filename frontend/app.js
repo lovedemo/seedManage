@@ -420,10 +420,19 @@ const renderResults = (items = [], meta = {}) => {
       metaEl.appendChild(dd);
     });
 
-    actionEl.href = item.magnet || '#';
-    openEl.href = item.magnet || '#';
-    actionEl.dataset.magnet = item.magnet || '';
-    openEl.dataset.magnet = item.magnet || '';
+    const isMagnet = item.magnet && item.magnet.startsWith('magnet:?');
+    if (isMagnet) {
+      actionEl.href = item.magnet;
+      openEl.href = item.magnet;
+      actionEl.dataset.magnet = item.magnet;
+      openEl.dataset.magnet = item.magnet;
+      actionEl.style.display = '';
+      openEl.style.display = '';
+    } else {
+      actionEl.style.display = 'none';
+      openEl.style.display = 'none';
+    }
+    
     actionEl.textContent = '复制磁力链接';
     openEl.textContent = '打开';
     
@@ -1146,32 +1155,44 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
     }
 
     // Action buttons
-    if (actionEl && item.magnet) {
-      actionEl.dataset.magnet = item.magnet;
-      actionEl.addEventListener('click', async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const { magnet } = event.currentTarget.dataset;
-        if (!magnet) return;
-        try {
-          await navigator.clipboard.writeText(magnet);
-          setCollectionDetailStatus('磁力链接已复制到剪贴板。');
-          setTimeout(() => setCollectionDetailStatus(''), 1800);
-        } catch (error) {
-          window.open(magnet, '_blank');
-        }
-      });
+    if (actionEl) {
+      const isMagnet = item.magnet && item.magnet.startsWith('magnet:?');
+      if (isMagnet) {
+        actionEl.dataset.magnet = item.magnet;
+        actionEl.style.display = '';
+        actionEl.addEventListener('click', async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const { magnet } = event.currentTarget.dataset;
+          if (!magnet) return;
+          try {
+            await navigator.clipboard.writeText(magnet);
+            setCollectionDetailStatus('磁力链接已复制到剪贴板。');
+            setTimeout(() => setCollectionDetailStatus(''), 1800);
+          } catch (error) {
+            window.open(magnet, '_blank');
+          }
+        });
+      } else {
+        actionEl.style.display = 'none';
+      }
     }
 
-    if (openEl && item.magnet) {
-      openEl.dataset.magnet = item.magnet;
-      openEl.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const { magnet } = event.currentTarget.dataset;
-        if (!magnet) return;
-        window.open(magnet, '_blank');
-      });
+    if (openEl) {
+      const isMagnet = item.magnet && item.magnet.startsWith('magnet:?');
+      if (isMagnet) {
+        openEl.dataset.magnet = item.magnet;
+        openEl.style.display = '';
+        openEl.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const { magnet } = event.currentTarget.dataset;
+          if (!magnet) return;
+          window.open(magnet, '_blank');
+        });
+      } else {
+        openEl.style.display = 'none';
+      }
     }
 
     fragment.appendChild(card);
@@ -1237,6 +1258,17 @@ const performBatchDelete = async () => {
   }
 };
 const performKeywordSearch = async (keyword, anchorElement) => {
+  // 检查当前下拉框是否已打开且为同一关键字
+  const dropdownContainer = anchorElement.querySelector('.collection-item__dropdown');
+  if (dropdownContainer && !dropdownContainer.hidden && dropdownContainer.dataset.keyword === keyword) {
+    // Toggle 关闭
+    dropdownContainer.hidden = true;
+    dropdownContainer.innerHTML = '';
+    dropdownContainer.dataset.keyword = '';
+    setCollectionDetailStatus('');
+    return;
+  }
+
   // Use the search adapter but WITHOUT saving to history
   setCollectionDetailStatus(`正在搜索: ${keyword}…`);
 
@@ -1341,32 +1373,42 @@ const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorEle
         metaEl.appendChild(dd);
       });
 
-      if (actionEl && result.magnet) {
-        actionEl.dataset.magnet = result.magnet;
-        actionEl.addEventListener('click', async (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const { magnet } = event.currentTarget.dataset;
-          if (!magnet) return;
-          try {
-            await navigator.clipboard.writeText(magnet);
-            setCollectionDetailStatus('磁力链接已复制到剪贴板。');
-            setTimeout(() => setCollectionDetailStatus(''), 1800);
-          } catch (error) {
-            window.open(magnet, '_blank');
-          }
-        });
+      if (actionEl) {
+        if (result.magnet && result.magnet.startsWith('magnet:?')) {
+          actionEl.dataset.magnet = result.magnet;
+          actionEl.style.display = '';
+          actionEl.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const { magnet } = event.currentTarget.dataset;
+            if (!magnet) return;
+            try {
+              await navigator.clipboard.writeText(magnet);
+              setCollectionDetailStatus('磁力链接已复制到剪贴板。');
+              setTimeout(() => setCollectionDetailStatus(''), 1800);
+            } catch (error) {
+              window.open(magnet, '_blank');
+            }
+          });
+        } else {
+          actionEl.style.display = 'none';
+        }
       }
 
-      if (openEl && result.magnet) {
-        openEl.dataset.magnet = result.magnet;
-        openEl.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const { magnet } = event.currentTarget.dataset;
-          if (!magnet) return;
-          window.open(magnet, '_blank');
-        });
+      if (openEl) {
+        if (result.magnet && result.magnet.startsWith('magnet:?')) {
+          openEl.dataset.magnet = result.magnet;
+          openEl.style.display = '';
+          openEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const { magnet } = event.currentTarget.dataset;
+            if (!magnet) return;
+            window.open(magnet, '_blank');
+          });
+        } else {
+          openEl.style.display = 'none';
+        }
       }
 
       fragment.appendChild(card);
@@ -1673,8 +1715,6 @@ singleAddForm.addEventListener('submit', async (e) => {
   const formData = new FormData(singleAddForm);
   const data = Object.fromEntries(formData.entries());
   
-  if (!data.magnet || !data.magnet.trim()) return;
-  
   const id = collectionsState.currentCollectionId;
   if (!id) return;
 
@@ -1707,10 +1747,10 @@ batchAddForm.addEventListener('submit', async (e) => {
   
   const magnets = magnetsRaw.split('\n')
     .map(m => m.trim())
-    .filter(m => m.startsWith('magnet:?'));
+    .filter(m => m.length > 0);
   
   if (magnets.length === 0) {
-    alert('请提供有效的磁力链接。');
+    alert('请提供有效的条目列表。');
     return;
   }
   
