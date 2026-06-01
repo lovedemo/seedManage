@@ -70,25 +70,25 @@ const SearchSection: React.FC<SearchSectionProps> = ({
       <section className="glass p-6 rounded-2xl space-y-4">
         <form onSubmit={(e) => handleSearch(e, 1)} className="space-y-4">
           <div className="relative group">
-            <label htmlFor="search" className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">
+            <label htmlFor="search" className="block text-sm font-semibold text-slate-500 mb-1.5 ml-1">
               搜索关键字 / 磁力链接
             </label>
             <div className="relative flex gap-2">
               <div className="relative flex-grow">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={18} />
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                 <input
                   id="search"
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="例如：Ubuntu ISO 或 magnet:?xt=..."
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
+                  className="w-full bg-white/60 border border-white/80 rounded-xl py-3 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all shadow-sm"
                 />
               </div>
               <button
                 type="submit"
                 disabled={isLoading || !query.trim()}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-md shadow-blue-500/10 active:scale-95 flex items-center gap-2"
               >
                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : <SearchIcon size={18} />}
                 <span>搜索</span>
@@ -98,7 +98,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div className="space-y-1.5">
-              <label htmlFor="adapter" className="block text-sm font-medium text-slate-400 ml-1">
+              <label htmlFor="adapter" className="block text-sm font-semibold text-slate-500 ml-1">
                 数据源适配器
               </label>
               <select
@@ -106,7 +106,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({
                 value={selectedAdapterId}
                 onChange={(e) => setSelectedAdapterId(e.target.value)}
                 disabled={isLoadingAdapters || isLoading}
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all appearance-none cursor-pointer"
+                className="w-full bg-white/60 border border-white/80 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all appearance-none cursor-pointer shadow-sm"
               >
                 {isLoadingAdapters ? (
                   <option>加载中...</option>
@@ -120,21 +120,21 @@ const SearchSection: React.FC<SearchSectionProps> = ({
               </select>
             </div>
             {currentAdapter && (
-              <p className="text-xs text-slate-500 italic pb-2 md:pb-3">
+              <p className="text-xs text-slate-500 font-medium italic pb-2 md:pb-3">
                 {currentAdapter.description || '无描述'}
               </p>
             )}
           </div>
         </form>
-        <p className="text-xs text-slate-500 bg-slate-900/30 p-3 rounded-lg border border-white/5">
+        <p className="text-xs text-slate-500 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50 font-medium">
           提示：粘贴磁链可直接生成预览，不会请求远程适配器。磁力链接识别为本地模式。
         </p>
       </section>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-xl flex items-center gap-3">
           <AlertCircle size={20} />
-          <p>{error}</p>
+          <p className="font-medium">{error}</p>
         </div>
       )}
 
@@ -142,7 +142,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({
         {isLoading && results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-4">
             <Loader2 className="animate-spin text-blue-500" size={40} />
-            <p>正在搜索资源，请稍候...</p>
+            <p className="font-medium">正在搜索资源，请稍候...</p>
           </div>
         ) : results.length > 0 ? (
           <>
@@ -153,41 +153,41 @@ const SearchSection: React.FC<SearchSectionProps> = ({
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl border border-white/5">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!meta.hasPrevPage || isLoading}
-                  className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-white/50 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-white/60 shadow-sm"
                 >
                   <ChevronLeft size={20} />
                 </button>
-                <span className="text-sm px-4">
-                  第 <span className="font-bold text-blue-400">{meta.currentPage || page}</span> 页
+                <span className="text-sm px-4 font-medium">
+                  第 <span className="font-bold text-blue-600">{meta.currentPage || page}</span> 页
                   {meta.totalPages && <span> / 共 {meta.totalPages} 页</span>}
                 </span>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!meta.hasNextPage || isLoading}
-                  className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-lg bg-white/50 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-white/60 shadow-sm"
                 >
                   <ChevronRight size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleJumpPage} className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">跳转到:</span>
+                <span className="text-sm text-slate-500 font-medium">跳转到:</span>
                 <input
                   type="number"
                   min="1"
                   max={meta.totalPages}
                   value={jumpPage}
                   onChange={(e) => setJumpPage(e.target.value)}
-                  className="w-16 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-center text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  className="w-16 bg-white/60 border border-white/80 rounded-lg px-2 py-1 text-center text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 shadow-sm"
                 />
                 <button 
                   type="submit"
-                  className="text-sm bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg transition-colors"
+                  className="text-sm bg-white/70 hover:bg-white px-3 py-1 rounded-lg transition-colors border border-white/60 shadow-sm font-semibold"
                 >
                   跳转
                 </button>
@@ -196,7 +196,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({
           </>
         ) : !isLoading && query && (
           <div className="text-center py-20 glass rounded-2xl">
-            <p className="text-slate-500">未找到结果</p>
+            <p className="text-slate-500 font-medium">未找到结果</p>
           </div>
         )}
       </section>
