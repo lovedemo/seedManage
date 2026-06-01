@@ -1746,6 +1746,10 @@ body::after {
   padding: 20px;
 }
 
+.modal[hidden] {
+  display: none !important;
+}
+
 .modal-content {
   background: white;
   border-radius: var(--radius-lg);
