@@ -1373,11 +1373,20 @@ body::after {
   transition: all var(--transition);
   position: relative;
   overflow: hidden;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 16px !important;
-  padding: 16px 24px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0 !important;
   min-height: 80px;
+}
+
+.collection-item__row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  width: 100%;
 }
 
 .collection-item-card::before {
@@ -1402,7 +1411,7 @@ body::after {
 .collection-item__content {
   flex: 1;
   display: flex;
-  flex-direction: row !important;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -1427,9 +1436,7 @@ body::after {
   word-break: break-word;
   flex: 1;
   font-size: 1.05rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .collection-item__keywords {
@@ -1643,11 +1650,28 @@ body::after {
   }
 
   .collection-item-card {
-    padding: 20px;
+    padding: 0 !important;
+  }
+
+  .collection-item__row {
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .collection-item__content {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
   }
 
   .collection-item__header {
-    flex-direction: column;
+    width: 100%;
+  }
+
+  .collection-item__title {
+    white-space: normal;
   }
 
   .keyword-search-overlay {
@@ -1675,7 +1699,7 @@ body::after {
   }
 
   .collection-item-card {
-    padding: 16px;
+    padding: 0 !important;
   }
 }
 
@@ -1750,17 +1774,14 @@ body::after {
 }
 
 /* Dropdown Results Styles */
-.item-dropdown-results {
-  grid-column: 1 / -1;
+.collection-item__dropdown {
   background: rgba(0, 0, 0, 0.02);
-  border-radius: var(--radius-md);
-  margin-top: -10px;
-  margin-bottom: 10px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-top: 1px solid var(--border);
   animation: slideDown 0.3s ease;
+}
+
+.item-dropdown-results {
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1805,16 +1826,9 @@ body::after {
 }
 
 /* Collection Item Selection */
-.collection-item-card {
-  flex-direction: row !important;
-  align-items: flex-start !important;
-  gap: 16px !important;
-}
-
 .collection-item__selection {
   display: flex;
   align-items: center;
-  padding-top: 4px;
 }
 
 .collection-item__checkbox {

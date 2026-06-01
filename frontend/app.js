@@ -1056,6 +1056,17 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
         }
         updateBatchActionsBar();
       });
+
+      // Click on row to toggle checkbox
+      article.addEventListener('click', (e) => {
+        // Don't toggle if clicking on interactive elements
+        const interactiveTags = ['A', 'BUTTON', 'INPUT'];
+        if (interactiveTags.includes(e.target.tagName) || e.target.closest('.keyword-chip')) {
+          return;
+        }
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+      });
     }
 
     // Title
@@ -1128,6 +1139,7 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
       actionEl.dataset.magnet = item.magnet;
       actionEl.addEventListener('click', async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         const { magnet } = event.currentTarget.dataset;
         if (!magnet) return;
         try {
@@ -1144,6 +1156,7 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
       openEl.dataset.magnet = item.magnet;
       openEl.addEventListener('click', (event) => {
         event.preventDefault();
+        event.stopPropagation();
         const { magnet } = event.currentTarget.dataset;
         if (!magnet) return;
         window.open(magnet, '_blank');
@@ -1241,9 +1254,18 @@ const performKeywordSearch = async (keyword, anchorElement) => {
 };
 
 const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorElement) => {
-  // Remove existing dropdowns in this collection view
-  const existingDropdowns = collectionItemsEl.querySelectorAll('.item-dropdown-results');
-  existingDropdowns.forEach(d => d.remove());
+  const dropdownContainer = anchorElement.querySelector('.collection-item__dropdown');
+  if (!dropdownContainer) return;
+
+  // Toggle logic: if clicking the same keyword and it's already open, close it
+  if (!dropdownContainer.hidden && dropdownContainer.dataset.keyword === keyword) {
+    dropdownContainer.hidden = true;
+    dropdownContainer.innerHTML = '';
+    return;
+  }
+
+  dropdownContainer.dataset.keyword = keyword;
+  dropdownContainer.innerHTML = '';
 
   const dropdown = document.createElement('div');
   dropdown.className = 'item-dropdown-results';
@@ -1253,10 +1275,14 @@ const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorEle
   header.className = 'item-dropdown-results__header';
   header.innerHTML = `
     <h4>搜索结果: "${keyword}" <small>(${results.length} 条来自 ${meta.adapterName || '适配器'})</small></h4>
-    <button type="button" class="item-dropdown-results__close" title="关闭">×</button>
+    <button type="button" class="item-dropdown-results__close" title="收起">×</button>
   `;
 
-  header.querySelector('.item-dropdown-results__close').addEventListener('click', () => dropdown.remove());
+  header.querySelector('.item-dropdown-results__close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownContainer.hidden = true;
+    dropdownContainer.innerHTML = '';
+  });
 
   dropdown.appendChild(header);
 
@@ -1308,6 +1334,7 @@ const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorEle
         actionEl.dataset.magnet = result.magnet;
         actionEl.addEventListener('click', async (event) => {
           event.preventDefault();
+          event.stopPropagation();
           const { magnet } = event.currentTarget.dataset;
           if (!magnet) return;
           try {
@@ -1324,6 +1351,7 @@ const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorEle
         openEl.dataset.magnet = result.magnet;
         openEl.addEventListener('click', (event) => {
           event.preventDefault();
+          event.stopPropagation();
           const { magnet } = event.currentTarget.dataset;
           if (!magnet) return;
           window.open(magnet, '_blank');
@@ -1336,12 +1364,11 @@ const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorEle
   }
 
   dropdown.appendChild(resultsList);
-  
-  // Insert the dropdown immediately after the anchorElement (the row)
-  anchorElement.after(dropdown);
+  dropdownContainer.appendChild(dropdown);
+  dropdownContainer.hidden = false;
   
   // Scroll into view if needed
-  dropdown.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  dropdownContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
 const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
