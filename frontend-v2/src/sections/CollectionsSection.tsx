@@ -47,7 +47,12 @@ const CollectionsSection: React.FC = () => {
     setError(null);
     try {
       const response = await api.post('/api/collections', { name });
-      setCollections([...collections, response.data.collection]);
+      const newCollection = response.data.collection || response.data;
+      if (newCollection.id) {
+        setCollections([...collections, newCollection]);
+      } else if (Array.isArray(response.data)) {
+        setCollections(response.data);
+      }
       setIsAddModalOpen(false);
     } catch (error: any) {
       console.error('Failed to create collection', error);
