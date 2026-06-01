@@ -1040,10 +1040,12 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
     const titleEl = card.querySelector('.collection-item__title');
     const starBtn = card.querySelector('.collection-item__star');
     const keywordsEl = card.querySelector('.collection-item__keywords');
-    const remarksEl = card.querySelector('.collection-item__remarks');
     const metaEl = card.querySelector('.card-meta');
     const actionEl = card.querySelector('.card-action');
     const openEl = card.querySelector('.card-open');
+    const toggleBtn = card.querySelector('.collection-item__toggle');
+    const detailsEl = card.querySelector('.collection-item__details');
+    const remarksFullEl = card.querySelector('.collection-item__remarks-full');
 
     // Selection logic
     if (checkbox) {
@@ -1072,6 +1074,22 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
     // Title
     titleEl.textContent = item.title || item.remarks || '未命名条目';
     titleEl.title = item.title || item.remarks || '未命名条目';
+
+    // Toggle logic
+    if (toggleBtn && detailsEl) {
+      if (item.remarks) {
+        remarksFullEl.textContent = item.remarks;
+        toggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isExpanded = !detailsEl.hidden;
+          detailsEl.hidden = isExpanded;
+          toggleBtn.textContent = isExpanded ? '展开' : '收起';
+          article.dataset.expanded = !isExpanded;
+        });
+      } else {
+        toggleBtn.style.display = 'none';
+      }
+    }
 
     // Star button
     if (starBtn) {
@@ -1112,13 +1130,6 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
       }
     } else {
       keywordsEl.style.display = 'none';
-    }
-
-    // Remarks
-    if (remarksEl && item.remarks) {
-      remarksEl.textContent = item.remarks;
-    } else {
-      remarksEl.style.display = 'none';
     }
 
     // Meta info
