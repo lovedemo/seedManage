@@ -424,13 +424,16 @@ func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Reques
         }
 
         for i := range items {
-            if strings.TrimSpace(items[i].Magnet) == "" {
-                return ClientError{Message: "所有条目都必须提供磁力链接。"}
-            }
             if strings.TrimSpace(items[i].Title) == "" {
-                items[i].Title = items[i].Magnet
-                if len(items[i].Title) > 60 {
-                    items[i].Title = items[i].Title[:60] + "..."
+                if strings.TrimSpace(items[i].Magnet) != "" {
+                    items[i].Title = items[i].Magnet
+                    if len(items[i].Title) > 60 {
+                        items[i].Title = items[i].Title[:60] + "..."
+                    }
+                } else if strings.TrimSpace(items[i].Remarks) != "" {
+                    items[i].Title = items[i].Remarks
+                } else {
+                    items[i].Title = "未命名条目"
                 }
             }
         }
