@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ArrowLeft, Search, Trash2, Star, ChevronLeft, ChevronRight, 
-  Loader2, Plus, Import, CheckSquare, Square, 
+  Loader2, Plus, Import, CheckSquare, Square, AlertCircle,
   ExternalLink, Copy, ChevronDown, ChevronUp
 } from 'lucide-react';
 import api from '../api';
@@ -23,6 +23,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
 }) => {
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [starFilter, setStarFilter] = useState(false);
   const [page, setPage] = useState(1);
@@ -48,8 +49,8 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
       
       setItems(response.data.items || []);
       setTotalPages(response.data.totalPages || 1);
-    } catch (error) {
-      console.error('Failed to fetch items', error);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || '获取条目失败');
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +67,8 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
       setItems(items.filter(item => !ids.includes(item.magnet)));
       setSelectedIds(new Set());
       onRefreshCollections();
-    } catch (error) {
-      console.error('Failed to delete items', error);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || '删除条目失败');
     }
   };
 
@@ -119,8 +120,8 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
         
         fetchItems();
         onRefreshCollections();
-      } catch (error) {
-        console.error('CSV Import failed', error);
+      } catch (err: any) {
+        setError(err.response?.data?.error || err.message || 'CSV导入失败');
       } finally {
         setIsLoading(false);
       }
@@ -161,6 +162,13 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
           </button>
         </div>
       </header>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-xl flex items-center gap-3">
+          <AlertCircle size={20} />
+          <p className="font-medium">{error}</p>
+        </div>
+      )}
 
       <div className="glass p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-grow w-full">
@@ -244,7 +252,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                         {item.title || '未命名资源'}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        {item.keywords?.map(kw => (
+                        {(Array.isArray(item.keywords) ? item.keywords : []).map(kw => (
                           <span key={kw} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold">{kw}</span>
                         ))}
                       </div>

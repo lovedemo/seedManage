@@ -258,9 +258,15 @@ func (s *Store) parseCSV(csvContent string) ([]models.CollectionItem, error) {
         }
         magnet := strings.TrimSpace(row[0])
 
-        keywords := ""
+        var keywords []string
         if len(row) > 1 {
-            keywords = strings.TrimSpace(row[1])
+            kw := strings.TrimSpace(row[1])
+            if kw != "" {
+                keywords = strings.Fields(kw)
+            }
+        }
+        if keywords == nil {
+            keywords = []string{}
         }
         remarks := ""
         if len(row) > 2 {
