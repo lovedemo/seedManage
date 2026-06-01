@@ -4,6 +4,8 @@
   "private": true,
   "description": "Frontend for the local magnet search adapters UI.",
   "scripts": {
+    "build:frontend": "cd frontend-v2 && npm install && npm run build",
+    "dev:frontend": "cd frontend-v2 && npm run dev",
     "dev": "serve frontend -l 5173",
     "start": "npm run dev"
   },
