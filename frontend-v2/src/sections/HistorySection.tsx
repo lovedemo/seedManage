@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, RefreshCw, Trash2, ChevronDown, ChevronUp, Loader2, Search, Copy, ExternalLink } from 'lucide-react';
+import { History, RefreshCw, Trash2, ChevronDown, ChevronUp, Loader2, Search, Copy, ExternalLink, AlertCircle } from 'lucide-react';
 import api from '../api';
 import type { HistoryItem } from '../types';
 
@@ -7,14 +7,17 @@ const HistorySection: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const response = await api.get('/api/history');
       setHistory(response.data.history || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch history', error);
+      setError(error.response?.data?.error || error.message || '获取搜索历史失败');
     } finally {
       setIsLoading(false);
     }
@@ -25,11 +28,13 @@ const HistorySection: React.FC = () => {
   }, []);
 
   const deleteHistory = async (id: string) => {
+    setError(null);
     try {
       await api.delete(`/api/history?id=${id}`);
       setHistory(history.filter(item => item.id !== id));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete history', error);
+      setError(error.response?.data?.error || error.message || '删除历史记录失败');
     }
   };
 
@@ -58,6 +63,13 @@ const HistorySection: React.FC = () => {
           刷新
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+          <AlertCircle size={20} />
+          <p className="font-medium text-sm">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {isLoading && history.length === 0 ? (

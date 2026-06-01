@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderHeart, Plus, Trash2, Loader2 } from 'lucide-react';
+import { FolderHeart, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import api from '../api';
 import type { Collection } from '../types';
 import CollectionDetail from './CollectionDetail';
@@ -10,14 +10,17 @@ const CollectionsSection: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchCollections = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const response = await api.get('/api/collections');
       setCollections(response.data.collections || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch collections', error);
+      setError(error.response?.data?.error || error.message || '获取收藏集失败');
     } finally {
       setIsLoading(false);
     }
@@ -29,22 +32,26 @@ const CollectionsSection: React.FC = () => {
 
   const deleteCollection = async (id: string) => {
     if (!window.confirm('确定要删除这个收藏集吗？这将删除其中的所有条目。')) return;
+    setError(null);
     try {
       await api.delete(`/api/collections/${id}`);
       setCollections(collections.filter(c => c.id !== id));
       if (selectedCollectionId === id) setSelectedCollectionId(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete collection', error);
+      setError(error.response?.data?.error || error.message || '删除收藏集失败');
     }
   };
 
   const createCollection = async (name: string) => {
+    setError(null);
     try {
       const response = await api.post('/api/collections', { name });
       setCollections([...collections, response.data.collection]);
       setIsAddModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create collection', error);
+      setError(error.response?.data?.error || error.message || '创建收藏集失败');
     }
   };
 
@@ -80,6 +87,13 @@ const CollectionsSection: React.FC = () => {
           新建收藏集
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+          <AlertCircle size={20} />
+          <p className="font-medium text-sm">{error}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading && collections.length === 0 ? (

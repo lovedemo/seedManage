@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, AlertCircle } from 'lucide-react';
 
 interface AddCollectionModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface AddCollectionModalProps {
 const AddCollectionModal: React.FC<AddCollectionModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -18,9 +19,12 @@ const AddCollectionModal: React.FC<AddCollectionModalProps> = ({ isOpen, onClose
     if (!name.trim()) return;
     
     setIsSubmitting(true);
+    setError(null);
     try {
       await onSubmit(name);
       setName('');
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || '创建失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -28,7 +32,7 @@ const AddCollectionModal: React.FC<AddCollectionModalProps> = ({ isOpen, onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={onClose}></div>
       <div className="glass-dark border border-white/80 w-full max-w-md rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
         <header className="p-4 border-b border-slate-100 flex justify-between items-center bg-white/50">
           <h3 className="font-bold text-lg text-slate-800">新建收藏集</h3>
@@ -37,6 +41,12 @@ const AddCollectionModal: React.FC<AddCollectionModalProps> = ({ isOpen, onClose
           </button>
         </header>
         <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white/30">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-3 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+              <AlertCircle size={18} />
+              <p className="font-medium text-xs">{error}</p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <label htmlFor="collName" className="text-sm font-semibold text-slate-500 ml-1">集合名称</label>
             <input
