@@ -1060,12 +1060,14 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
 
     // Title
     titleEl.textContent = item.title || item.remarks || '未命名条目';
+    titleEl.title = item.title || item.remarks || '未命名条目';
 
     // Star button
     if (starBtn) {
       starBtn.textContent = item.starred ? '⭐' : '☆';
       starBtn.dataset.starred = item.starred ? 'true' : 'false';
-      starBtn.addEventListener('click', async () => {
+      starBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         // Toggle star - for now just update UI since we don't have a toggle API
         // In a full implementation, we'd call the backend to update
         const newStarred = !(starBtn.dataset.starred === 'true');
@@ -1087,8 +1089,9 @@ const renderCollectionItems = (items = [], allFilteredItems = []) => {
           chip.className = 'keyword-chip';
           chip.textContent = keyword;
           chip.title = `搜索: ${keyword}`;
-          chip.addEventListener('click', () => {
-            performKeywordSearch(keyword);
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            performKeywordSearch(keyword, article);
           });
           keywordFragment.appendChild(chip);
         });
@@ -1209,7 +1212,7 @@ const performBatchDelete = async () => {
     setCollectionDetailStatus(`删除失败：${error.message}`, 'error');
   }
 };
-const performKeywordSearch = async (keyword) => {
+const performKeywordSearch = async (keyword, anchorElement) => {
   // Use the search adapter but WITHOUT saving to history
   setCollectionDetailStatus(`正在搜索: ${keyword}…`);
 
@@ -1229,47 +1232,43 @@ const performKeywordSearch = async (keyword) => {
     const results = Array.isArray(data.results) ? data.results : [];
     const meta = data.meta || {};
 
-    // Show results in a modal-like overlay
-    showKeywordSearchResults(keyword, results, meta);
+    // Show results in a dropdown under the anchorElement (the row)
+    showKeywordSearchInDropdown(keyword, results, meta, anchorElement);
+    setCollectionDetailStatus('');
   } catch (error) {
     setCollectionDetailStatus(`搜索失败：${error.message}`, 'error');
   }
 };
 
-const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
-  // Remove existing overlay if any
-  const existing = document.getElementById('keywordSearchOverlay');
-  if (existing) existing.remove();
+const showKeywordSearchInDropdown = (keyword, results = [], meta = {}, anchorElement) => {
+  // Remove existing dropdowns in this collection view
+  const existingDropdowns = collectionItemsEl.querySelectorAll('.item-dropdown-results');
+  existingDropdowns.forEach(d => d.remove());
 
-  const overlay = document.createElement('div');
-  overlay.id = 'keywordSearchOverlay';
-  overlay.className = 'keyword-search-overlay';
-
-  const content = document.createElement('div');
-  content.className = 'keyword-search-content';
+  const dropdown = document.createElement('div');
+  dropdown.className = 'item-dropdown-results';
 
   // Header
   const header = document.createElement('div');
-  header.className = 'keyword-search-header';
+  header.className = 'item-dropdown-results__header';
   header.innerHTML = `
-    <h3>搜索结果: "${keyword}"</h3>
-    <p class="keyword-search-meta">${meta.adapterName || '适配器'} · ${results.length} 条结果</p>
-    <button type="button" class="keyword-search-close ghost-button">关闭 ✕</button>
+    <h4>搜索结果: "${keyword}" <small>(${results.length} 条来自 ${meta.adapterName || '适配器'})</small></h4>
+    <button type="button" class="item-dropdown-results__close" title="关闭">×</button>
   `;
 
-  header.querySelector('.keyword-search-close').addEventListener('click', () => overlay.remove());
+  header.querySelector('.item-dropdown-results__close').addEventListener('click', () => dropdown.remove());
 
-  content.appendChild(header);
+  dropdown.appendChild(header);
 
-  // Results
-  const resultsContainer = document.createElement('div');
-  resultsContainer.className = 'keyword-search-results';
+  // Results List
+  const resultsList = document.createElement('div');
+  resultsList.className = 'dropdown-results-list';
 
   if (!results.length) {
     const emptyEl = document.createElement('div');
     emptyEl.className = 'status';
     emptyEl.textContent = '未找到匹配的结果。';
-    resultsContainer.appendChild(emptyEl);
+    resultsList.appendChild(emptyEl);
   } else {
     const fragment = document.createDocumentFragment();
     results.forEach(result => {
@@ -1294,13 +1293,7 @@ const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
         const leechers = hasLeecherInfo ? formatNumber(result.leechers) : '未知';
         metaEntries.push(['做种 / 下载', `${seeders} / ${leechers}`]);
       }
-      if (result.infoHash) {
-        metaEntries.push(['Info Hash', result.infoHash]);
-      }
-      if (result.uploaded) {
-        metaEntries.push(['更新时间', formatDate(result.uploaded)]);
-      }
-
+      
       metaEl.innerHTML = '';
       metaEntries.forEach(([label, value]) => {
         const dt = document.createElement('dt');
@@ -1339,17 +1332,21 @@ const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
 
       fragment.appendChild(card);
     });
-    resultsContainer.appendChild(fragment);
+    resultsList.appendChild(fragment);
   }
 
-  content.appendChild(resultsContainer);
-  overlay.appendChild(content);
-  document.body.appendChild(overlay);
+  dropdown.appendChild(resultsList);
+  
+  // Insert the dropdown immediately after the anchorElement (the row)
+  anchorElement.after(dropdown);
+  
+  // Scroll into view if needed
+  dropdown.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
 
-  // Close on backdrop click
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) overlay.remove();
-  });
+const showKeywordSearchResults = (keyword, results = [], meta = {}) => {
+  // Legacy function - kept for compatibility if needed, but we now use dropdown
+  console.warn('showKeywordSearchResults is deprecated, use showKeywordSearchInDropdown');
 };
 
 // ============= EVENT LISTENERS =============
