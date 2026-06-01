@@ -235,22 +235,20 @@
         <div class="collection-item__details" hidden>
           <div class="collection-item__remarks-full"></div>
         </div>
-        <div class="collection-item__dropdown" hidden></div>
       </article>
     </template>
 
     <template id="keywordSearchResultTemplate">
-      <article class="result-card keyword-search-card">
-        <header class="card-header">
-          <h2 class="card-title"></h2>
-          <span class="card-badge"></span>
-        </header>
-        <dl class="card-meta"></dl>
-        <footer class="card-footer">
-          <a class="card-action" target="_blank" rel="noopener noreferrer">复制磁力链接</a>
-          <a class="card-open">打开</a>
-        </footer>
-      </article>
+      <div class="compact-search-item">
+        <div class="compact-search-content">
+          <div class="compact-search-title"></div>
+          <div class="compact-search-meta"></div>
+        </div>
+        <div class="compact-search-actions">
+          <a class="card-action" target="_blank" rel="noopener noreferrer" title="复制">复制</a>
+          <a class="card-open" title="打开">打开</a>
+        </div>
+      </div>
     </template>
 
     <div id="addItemModal" class="modal" hidden>
@@ -262,7 +260,7 @@
         <div class="modal-body">
           <div class="modal-tabs">
             <button type="button" class="modal-tab is-active" data-tab="singleAdd">手动添加</button>
-            <button type="button" class="modal-tab" data-tab="batchAdd">批量添加 (Magnet)</button>
+            <button type="button" class="modal-tab" data-tab="batchAdd">批量添加</button>
           </div>
           
           <div id="singleAddTab" class="modal-tab-content">
@@ -292,11 +290,11 @@
           <div id="batchAddTab" class="modal-tab-content" hidden>
             <form id="batchAddForm">
               <div class="form-group">
-                <label for="batchMagnets">磁力链接列表 (每行一个) *</label>
+                <label for="batchMagnets">列表 (支持每行一个磁链，或 磁链,关键字,备注)</label>
                 <textarea id="batchMagnets" name="magnets" placeholder="magnet:?xt=...
-magnet:?xt=..." required></textarea>
+magnet:?xt=..., 关键字, 备注"></textarea>
               </div>
-              <p class="form-helper">批量添加仅支持添加磁力链接。如果需要更详细的信息，请使用 CSV 导入。</p>
+              <p class="form-helper">每行支持格式：磁力链接 [, 关键字, 备注]。关键字和备注可选。</p>
               <div class="modal-footer">
                 <button type="submit" class="primary-btn">批量添加</button>
               </div>
