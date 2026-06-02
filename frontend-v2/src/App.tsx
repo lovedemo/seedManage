@@ -103,7 +103,7 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'history' && <HistorySection />}
-        {activeTab === 'collections' && <CollectionsSection selectedAdapterId={selectedAdapterId} adapters={adapters} />}
+        {activeTab === 'collections' && <CollectionsSection selectedAdapterId={selectedAdapterId} />}
       </main>
 
       <footer className="border-t border-white/20 bg-white/30 backdrop-blur-md py-4 px-6 text-center md:text-left">

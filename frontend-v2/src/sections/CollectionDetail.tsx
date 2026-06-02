@@ -5,7 +5,7 @@ import {
   ExternalLink, Copy, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import api from '../api';
-import type { CollectionItem, SearchResult, Adapter } from '../types';
+import type { CollectionItem, SearchResult } from '../types';
 import AddItemModal from '../components/AddItemModal';
 
 interface CollectionDetailProps {
@@ -14,7 +14,6 @@ interface CollectionDetailProps {
   onBack: () => void;
   onRefreshCollections: () => void;
   selectedAdapterId: string;
-  adapters: Adapter[];
 }
 
 interface KeywordSearchState {
@@ -32,8 +31,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
   collectionName, 
   onBack,
   onRefreshCollections,
-  selectedAdapterId,
-  adapters
+  selectedAdapterId
 }) => {
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
