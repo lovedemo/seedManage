@@ -67,8 +67,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, collection
         };
       });
 
-      // API handles array POST
-      await api.post(`/api/collections/${collectionId}/items`, items);
+      // Try wrapping in { items: [...] } to match expected backend structure
+      await api.post(`/api/collections/${collectionId}/items`, { items });
       
       setBatchContent('');
       onSuccess();
