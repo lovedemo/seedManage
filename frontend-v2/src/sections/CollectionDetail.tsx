@@ -379,7 +379,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                     </div>
                   </div>
 
-                  <div className="shrink-0 flex items-center justify-end gap-0.5 w-32">
+                  <div className="shrink-0 flex items-center justify-end gap-1.5 ml-1 w-32">
                      <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -461,39 +461,24 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                              <>
                                <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                  {keywordSearch[item.magnet]!.results.map((result, idx) => (
-                                   <div key={idx} className="flex items-center justify-between gap-3 py-1 px-2 rounded-lg hover:bg-white/60 transition-colors">
-                                     <div className="min-w-0 flex-1">
-                                       <p className="text-xs text-slate-700 truncate font-medium">{result.title}</p>
-                                       <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                         <span>{result.sizeLabel || (result.size ? `${result.size} B` : '-')}</span>
-                                         {result.seeders !== undefined && (
-                                           <span className="text-green-600">S: {result.seeders}</span>
-                                         )}
-                                         {result.leechers !== undefined && (
-                                           <span className="text-red-500">L: {result.leechers}</span>
-                                         )}
-                                         <button
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             navigator.clipboard.writeText(result.magnet);
-                                           }}
-                                           className="text-blue-500 hover:text-blue-700 transition-colors"
-                                           title="复制磁链"
-                                         >
-                                           <Copy size={11} />
-                                         </button>
-                                       </div>
-                                     </div>
-                                     <a
-                                       href={result.magnet}
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       className="shrink-0 p-1 text-slate-400 hover:text-green-600 transition-colors rounded hover:bg-green-50"
-                                       title="打开"
-                                       onClick={(e) => e.stopPropagation()}
+                                   <div key={idx} className="flex items-center justify-between gap-2 py-1 px-2 rounded-lg hover:bg-white/60 transition-colors">
+                                     <p
+                                       className="text-xs text-slate-700 truncate font-medium flex-1 min-w-0 cursor-pointer hover:text-blue-600"
+                                       onClick={() => window.open(result.magnet, '_blank')}
                                      >
-                                       <ExternalLink size={12} />
-                                     </a>
+                                       {result.title}
+                                       {result.sizeLabel && <span className="text-slate-400 ml-1">[{result.sizeLabel}]</span>}
+                                     </p>
+                                     <button
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         navigator.clipboard.writeText(result.magnet);
+                                       }}
+                                       className="shrink-0 p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
+                                       title="复制磁链"
+                                     >
+                                       <Copy size={12} />
+                                     </button>
                                    </div>
                                  ))}
                                </div>
