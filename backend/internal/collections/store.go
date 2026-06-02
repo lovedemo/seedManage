@@ -188,6 +188,33 @@ func (s *Store) DeleteItems(collectionID string, magnets []string) error {
     return s.write(collectionID, cf)
 }
 
+// UpdateItem updates the Starred status of an item in a collection
+func (s *Store) UpdateItem(collectionID, magnet string, starred bool) (*models.CollectionItem, error) {
+    cf, err := s.Get(collectionID)
+    if err != nil {
+        return nil, err
+    }
+
+    var updatedItem *models.CollectionItem
+    for i := range cf.Items {
+        if cf.Items[i].Magnet == magnet {
+            cf.Items[i].Starred = starred
+            updatedItem = &cf.Items[i]
+            break
+        }
+    }
+
+    if updatedItem == nil {
+        return nil, fmt.Errorf("collections: item with magnet %s not found in collection %s", magnet, collectionID)
+    }
+
+    if err := s.write(collectionID, cf); err != nil {
+        return nil, err
+    }
+
+    return updatedItem, nil
+}
+
 // ImportCSVToCollection parses a CSV and appends items to an existing collection
 func (s *Store) ImportCSVToCollection(id string, csvContent string) ([]models.CollectionItem, error) {
     items, err := s.parseCSV(csvContent)

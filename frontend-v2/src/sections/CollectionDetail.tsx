@@ -21,6 +21,8 @@ interface KeywordSearchState {
     query: string;
     results: SearchResult[];
     loading: boolean;
+    page: number;
+    hasNextPage: boolean;
   } | undefined;
 }
 
@@ -38,6 +40,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [starFilter, setStarFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [jumpPage, setJumpPage] = useState('1');
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -143,33 +146,72 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
     fileInput.click();
   };
 
-  const handleKeywordClick = async (magnet: string, keyword: string) => {
+  const handleKeywordClick = async (magnet: string, keyword: string, page: number = 1) => {
     const existing = keywordSearch[magnet];
-    if (existing && existing.query === keyword) {
+    if (existing && existing.query === keyword && page === 1 && existing.results.length > 0) {
       // Toggle off
       setKeywordSearch(prev => ({ ...prev, [magnet]: undefined }));
       return;
     }
 
-    setKeywordSearch(prev => ({ ...prev, [magnet]: { query: keyword, results: [], loading: true } }));
+    setKeywordSearch(prev => ({ 
+      ...prev, 
+      [magnet]: { 
+        query: keyword, 
+        results: page === 1 ? [] : (prev[magnet]?.results || []), 
+        loading: true,
+        page,
+        hasNextPage: false
+      } 
+    }));
 
     try {
       const response = await api.get('/api/search', {
         params: { 
           q: keyword,
-          adapter: selectedAdapterId
+          adapter: selectedAdapterId,
+          page,
+          norecord: 'true'
         }
       });
+      const { results, meta } = response.data;
       setKeywordSearch(prev => ({
         ...prev,
-        [magnet]: { query: keyword, results: response.data.results || [], loading: false }
+        [magnet]: { 
+          query: keyword, 
+          results: results || [], 
+          loading: false,
+          page: meta.currentPage || page,
+          hasNextPage: meta.hasNextPage || false
+        }
       }));
     } catch (err) {
       console.error('Keyword search failed', err);
       setKeywordSearch(prev => ({
         ...prev,
-        [magnet]: { query: keyword, results: [], loading: false }
+        [magnet]: { 
+          query: keyword, 
+          results: prev[magnet]?.results || [], 
+          loading: false, 
+          page: prev[magnet]?.page || page,
+          hasNextPage: false 
+        }
       }));
+    }
+  };
+
+  const toggleStar = async (item: CollectionItem) => {
+    try {
+      const response = await api.patch(`/api/collections/${collectionId}/items`, {
+        magnet: item.magnet,
+        starred: !item.starred
+      });
+      
+      const updatedItem = response.data;
+      setItems(prevItems => prevItems.map(i => i.magnet === item.magnet ? updatedItem : i));
+    } catch (error: any) {
+      console.error('Failed to toggle star', error);
+      setError(error.response?.data?.error || error.message || '更新收藏状态失败');
     }
   };
 
@@ -184,6 +226,11 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
       setCurrentPage(1);
     }
   }, [items.length, currentPage, totalPages]);
+
+  // Update jumpPage when safePage changes
+  useEffect(() => {
+    setJumpPage(safePage.toString());
+  }, [safePage]);
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -279,13 +326,12 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
           </div>
         ) : items.length > 0 ? (
           <>
-            <div className="px-4 py-1.5 text-xs text-slate-500 font-bold grid grid-cols-12 gap-3 items-center">
-               <button onClick={selectAll} className="col-span-1 hover:text-blue-600 transition-colors flex items-center justify-start">
+            <div className="px-4 py-1.5 text-xs text-slate-500 font-bold flex items-center gap-2">
+               <button onClick={selectAll} className="shrink-0 hover:text-blue-600 transition-colors flex items-center justify-start mr-2">
                   {selectedIds.size === items.length ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
                </button>
-               <span className="col-span-5">资源名称</span>
-               <span className="col-span-2">关键词</span>
-               <span className="col-span-4 text-right">操作</span>
+               <span className="flex-1">资源名称 / 关键词</span>
+               <span className="shrink-0 w-32 text-right">操作</span>
             </div>
             {paginatedItems.map((item) => (
               <div 
@@ -293,7 +339,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                 className={`glass rounded-xl border border-white/80 overflow-hidden transition-all hover:bg-white/80 ${selectedIds.has(item.magnet) ? 'border-blue-400 bg-blue-50/50 shadow-md' : 'shadow-sm'}`}
               >
                 <div 
-                  className="p-2.5 grid grid-cols-12 gap-3 items-center cursor-pointer"
+                  className="p-2.5 flex items-center gap-1.5 cursor-pointer"
                   onClick={() => setExpandedId(expandedId === item.magnet ? null : item.magnet)}
                 >
                   <button 
@@ -301,14 +347,14 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                       e.stopPropagation();
                       toggleSelect(item.magnet);
                     }}
-                    className={`col-span-1 transition-colors ${selectedIds.has(item.magnet) ? 'text-blue-600' : 'text-slate-300 hover:text-slate-500'}`}
+                    className={`shrink-0 transition-colors mr-1 ${selectedIds.has(item.magnet) ? 'text-blue-600' : 'text-slate-300 hover:text-slate-500'}`}
                   >
                     {selectedIds.has(item.magnet) ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
                   
-                  <div className="col-span-5 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
                     <h4 
-                      className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors"
+                      className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors flex-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleSelect(item.magnet);
@@ -316,24 +362,24 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                     >
                       {item.title || '未命名资源'}
                     </h4>
+
+                    <div className="shrink-0 flex flex-wrap gap-1 max-w-[40%] justify-end">
+                      {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
+                        <span 
+                          key={kw} 
+                          className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleKeywordClick(item.magnet, kw);
+                          }}
+                        >
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="col-span-2 flex flex-wrap gap-1">
-                    {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
-                      <span 
-                        key={kw} 
-                        className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleKeywordClick(item.magnet, kw);
-                        }}
-                      >
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="col-span-4 flex items-center justify-end gap-1">
+                  <div className="shrink-0 flex items-center justify-end gap-0.5 w-32">
                      <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -357,7 +403,7 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                      <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Star logic should be here if needed
+                          toggleStar(item);
                         }}
                         className="p-1.5 text-slate-400 hover:text-yellow-500 transition-colors rounded-lg hover:bg-yellow-50"
                      >
@@ -396,49 +442,85 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                        {/* In-list keyword search results */}
                        {keywordSearch[item.magnet] && (
                          <div className="mt-2 pt-2 border-t border-slate-200/60">
-                           <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">
-                             搜索 "{keywordSearch[item.magnet]!.query}" 的结果
-                           </p>
+                           <div className="flex items-center justify-between mb-1">
+                             <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                               搜索 "{keywordSearch[item.magnet]!.query}" 的结果
+                             </p>
+                             {keywordSearch[item.magnet]!.results.length > 0 && !keywordSearch[item.magnet]!.loading && (
+                               <span className="text-[10px] text-slate-400 font-bold">
+                                 第 {keywordSearch[item.magnet]!.page} 页
+                               </span>
+                             )}
+                           </div>
                            {keywordSearch[item.magnet]!.loading ? (
                              <div className="flex items-center gap-2 py-2">
                                <Loader2 className="animate-spin text-blue-500" size={14} />
                                <span className="text-xs text-slate-500">搜索中...</span>
                              </div>
                            ) : keywordSearch[item.magnet]!.results.length > 0 ? (
-                             <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                               {keywordSearch[item.magnet]!.results.map((result, idx) => (
-                                 <div key={idx} className="flex items-center justify-between gap-3 py-1 px-2 rounded-lg hover:bg-white/60 transition-colors">
-                                   <div className="min-w-0 flex-1">
-                                     <p className="text-xs text-slate-700 truncate font-medium">{result.title}</p>
-                                     <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                       <span>{result.sizeLabel || (result.size ? `${result.size} B` : '-')}</span>
-                                       {result.seeders !== undefined && (
-                                         <span className="text-green-600">S: {result.seeders}</span>
-                                       )}
-                                       {result.leechers !== undefined && (
-                                         <span className="text-red-500">L: {result.leechers}</span>
-                                       )}
-                                       <button
-                                         onClick={() => navigator.clipboard.writeText(result.magnet)}
-                                         className="text-blue-500 hover:text-blue-700 transition-colors"
-                                         title="复制磁链"
-                                       >
-                                         <Copy size={11} />
-                                       </button>
+                             <>
+                               <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                 {keywordSearch[item.magnet]!.results.map((result, idx) => (
+                                   <div key={idx} className="flex items-center justify-between gap-3 py-1 px-2 rounded-lg hover:bg-white/60 transition-colors">
+                                     <div className="min-w-0 flex-1">
+                                       <p className="text-xs text-slate-700 truncate font-medium">{result.title}</p>
+                                       <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                                         <span>{result.sizeLabel || (result.size ? `${result.size} B` : '-')}</span>
+                                         {result.seeders !== undefined && (
+                                           <span className="text-green-600">S: {result.seeders}</span>
+                                         )}
+                                         {result.leechers !== undefined && (
+                                           <span className="text-red-500">L: {result.leechers}</span>
+                                         )}
+                                         <button
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             navigator.clipboard.writeText(result.magnet);
+                                           }}
+                                           className="text-blue-500 hover:text-blue-700 transition-colors"
+                                           title="复制磁链"
+                                         >
+                                           <Copy size={11} />
+                                         </button>
+                                       </div>
                                      </div>
+                                     <a
+                                       href={result.magnet}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="shrink-0 p-1 text-slate-400 hover:text-green-600 transition-colors rounded hover:bg-green-50"
+                                       title="打开"
+                                       onClick={(e) => e.stopPropagation()}
+                                     >
+                                       <ExternalLink size={12} />
+                                     </a>
                                    </div>
-                                   <a
-                                     href={result.magnet}
-                                     target="_blank"
-                                     rel="noopener noreferrer"
-                                     className="shrink-0 p-1 text-slate-400 hover:text-green-600 transition-colors rounded hover:bg-green-50"
-                                     title="打开"
-                                   >
-                                     <ExternalLink size={12} />
-                                   </a>
-                                 </div>
-                               ))}
-                             </div>
+                                 ))}
+                               </div>
+                               
+                               <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100">
+                                 <button
+                                   disabled={keywordSearch[item.magnet]!.page <= 1}
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleKeywordClick(item.magnet, keywordSearch[item.magnet]!.query, keywordSearch[item.magnet]!.page - 1);
+                                   }}
+                                   className="p-1 hover:bg-white rounded border border-slate-100 disabled:opacity-30 transition-colors shadow-sm"
+                                 >
+                                   <ChevronLeft size={14} />
+                                 </button>
+                                 <button
+                                   disabled={!keywordSearch[item.magnet]!.hasNextPage}
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleKeywordClick(item.magnet, keywordSearch[item.magnet]!.query, keywordSearch[item.magnet]!.page + 1);
+                                   }}
+                                   className="p-1 hover:bg-white rounded border border-slate-100 disabled:opacity-30 transition-colors shadow-sm"
+                                 >
+                                   <ChevronRight size={14} />
+                                 </button>
+                               </div>
+                             </>
                            ) : (
                              <p className="text-xs text-slate-400 py-1">无搜索结果</p>
                            )}
@@ -451,24 +533,53 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
             ))}
             
             {/* Pagination - frontend */}
-            <div className="flex justify-center gap-4 pt-3">
-               <button
-                  disabled={safePage === 1 || isLoading}
-                  onClick={() => setCurrentPage(safePage - 1)}
-                  className="p-1.5 bg-white hover:bg-slate-100 border border-white/80 rounded-lg disabled:opacity-30 shadow-sm transition-colors"
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl mt-4">
+               <div className="flex items-center gap-2">
+                 <button
+                    disabled={safePage === 1 || isLoading}
+                    onClick={() => setCurrentPage(safePage - 1)}
+                    className="p-2 rounded-lg bg-white/50 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-white/60 shadow-sm"
+                 >
+                    <ChevronLeft size={20} />
+                 </button>
+                 <span className="text-sm px-4 font-medium">
+                    第 <span className="font-bold text-blue-600">{safePage}</span> 页 / 共 {totalPages} 页
+                 </span>
+                 <button
+                    disabled={safePage === totalPages || isLoading}
+                    onClick={() => setCurrentPage(safePage + 1)}
+                    className="p-2 rounded-lg bg-white/50 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-white/60 shadow-sm"
+                 >
+                    <ChevronRight size={20} />
+                 </button>
+               </div>
+
+               <form 
+                 onSubmit={(e) => {
+                   e.preventDefault();
+                   const p = parseInt(jumpPage);
+                   if (!isNaN(p) && p > 0 && p <= totalPages) {
+                     setCurrentPage(p);
+                   }
+                 }} 
+                 className="flex items-center gap-2"
                >
-                  <ChevronLeft size={18} />
-               </button>
-               <span className="flex items-center text-sm font-bold text-slate-600">
-                  {safePage} / {totalPages}
-               </span>
-               <button
-                  disabled={safePage === totalPages || isLoading}
-                  onClick={() => setCurrentPage(safePage + 1)}
-                  className="p-1.5 bg-white hover:bg-slate-100 border border-white/80 rounded-lg disabled:opacity-30 shadow-sm transition-colors"
-               >
-                  <ChevronRight size={18} />
-               </button>
+                 <span className="text-sm text-slate-500 font-medium">跳转到:</span>
+                 <input
+                   type="number"
+                   min="1"
+                   max={totalPages}
+                   value={jumpPage}
+                   onChange={(e) => setJumpPage(e.target.value)}
+                   className="w-16 bg-white/60 border border-white/80 rounded-lg px-2 py-1 text-center text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 shadow-sm"
+                 />
+                 <button 
+                   type="submit"
+                   className="text-sm bg-white/70 hover:bg-white px-3 py-1 rounded-lg transition-colors border border-white/60 shadow-sm font-semibold"
+                 >
+                   跳转
+                 </button>
+               </form>
             </div>
           </>
         ) : (

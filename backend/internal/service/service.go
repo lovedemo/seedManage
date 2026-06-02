@@ -66,7 +66,7 @@ func (s *APIService) withJSON(handler jsonHandler) http.HandlerFunc {
 func (s *APIService) cors(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
         w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
         if r.Method == http.MethodOptions {
             w.WriteHeader(http.StatusNoContent)
@@ -176,7 +176,9 @@ func (s *APIService) handleSearch(w http.ResponseWriter, r *http.Request) error 
                 ResultCount: 1,
             },
         }
-        s.recordHistory(response)
+        if r.URL.Query().Get("norecord") != "true" {
+            s.recordHistory(response)
+        }
         return s.writeJSON(w, response, http.StatusOK)
     }
 
@@ -250,7 +252,9 @@ func (s *APIService) handleSearch(w http.ResponseWriter, r *http.Request) error 
         Meta:    meta,
     }
 
-    s.recordHistory(response)
+    if r.URL.Query().Get("norecord") != "true" {
+        s.recordHistory(response)
+    }
 
     return s.writeJSON(w, response, http.StatusOK)
 }
@@ -409,10 +413,21 @@ func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Reques
             return ClientError{Message: err.Error()}
         }
         
+        items := cf.Items
+        if r.URL.Query().Get("starred") == "true" {
+            var filtered []models.CollectionItem
+            for _, item := range items {
+                if item.Starred {
+                    filtered = append(filtered, item)
+                }
+            }
+            items = filtered
+        }
+
         // Return only items and total count for this endpoint
         payload := map[string]any{
-            "items":      cf.Items,
-            "totalCount": len(cf.Items),
+            "items":      items,
+            "totalCount": len(items),
             "totalPages": 1, // Store doesn't support pagination yet, return everything as 1 page
         }
         return s.writeJSON(w, payload, http.StatusOK)
@@ -495,6 +510,25 @@ func (s *APIService) handleCollectionItems(w http.ResponseWriter, r *http.Reques
         }
         return s.writeJSON(w, payload, http.StatusOK)
 
+    case http.MethodPatch:
+        var body struct {
+            Magnet  string `json:"magnet"`
+            Starred bool   `json:"starred"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+            return ClientError{Message: "请提供有效的JSON数据。"}
+        }
+        if strings.TrimSpace(body.Magnet) == "" {
+            return ClientError{Message: "请提供磁力链接。"}
+        }
+
+        item, err := s.collections.UpdateItem(collectionID, body.Magnet, body.Starred)
+        if err != nil {
+            return ClientError{Message: err.Error()}
+        }
+
+        return s.writeJSON(w, item, http.StatusOK)
+
     default:
         return NewMethodNotAllowedError(r.Method)
     }
@@ -551,9 +585,17 @@ func (s *APIService) handleCollectionSearch(w http.ResponseWriter, r *http.Reque
         return ClientError{Message: fmt.Sprintf("未知的适配器: %s", adapterID)}
     }
 
+    // 解析分页参数
+    page := 1
+    if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+        if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+            page = p
+        }
+    }
+
     searchOptions := models.SearchOptions{
         Query: keyword,
-        Page:  1,
+        Page:  page,
     }
 
     results, err := adapter.SearchWithOptions(r.Context(), searchOptions)
@@ -565,7 +607,8 @@ func (s *APIService) handleCollectionSearch(w http.ResponseWriter, r *http.Reque
         AdapterDescription: adapter.Description(),
         AdapterEndpoint:    adapter.Endpoint(),
         ResultCount:        len(results),
-        HasPrevPage:        false,
+        CurrentPage:        page,
+        HasPrevPage:        page > 1,
     }
 
     if err != nil {
