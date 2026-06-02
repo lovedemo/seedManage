@@ -48,7 +48,7 @@ const App: React.FC = () => {
   const currentAdapter = adapters.find(a => a.id === selectedAdapterId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-yellow-50 text-slate-800 font-sans transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 text-slate-800 font-sans transition-colors duration-500">
       <header className="sticky top-0 z-10 glass border-b border-white/20 px-4 py-3">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -103,7 +103,7 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'history' && <HistorySection />}
-        {activeTab === 'collections' && <CollectionsSection />}
+        {activeTab === 'collections' && <CollectionsSection selectedAdapterId={selectedAdapterId} adapters={adapters} />}
       </main>
 
       <footer className="border-t border-white/20 bg-white/30 backdrop-blur-md py-4 px-6 text-center md:text-left">

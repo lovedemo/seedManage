@@ -25,11 +25,11 @@ body {
 
 /* Glassmorphism utility - light theme */
 .glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 2px 16px -4px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
 }
 
 .glass-dark {

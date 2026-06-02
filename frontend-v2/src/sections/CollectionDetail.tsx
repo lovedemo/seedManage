@@ -5,7 +5,7 @@ import {
   ExternalLink, Copy, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import api from '../api';
-import type { CollectionItem, SearchResult } from '../types';
+import type { CollectionItem, SearchResult, Adapter } from '../types';
 import AddItemModal from '../components/AddItemModal';
 
 interface CollectionDetailProps {
@@ -13,6 +13,8 @@ interface CollectionDetailProps {
   collectionName: string;
   onBack: () => void;
   onRefreshCollections: () => void;
+  selectedAdapterId: string;
+  adapters: Adapter[];
 }
 
 interface KeywordSearchState {
@@ -29,7 +31,9 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
   collectionId, 
   collectionName, 
   onBack,
-  onRefreshCollections
+  onRefreshCollections,
+  selectedAdapterId,
+  adapters
 }) => {
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,7 +157,10 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
 
     try {
       const response = await api.get('/api/search', {
-        params: { q: keyword }
+        params: { 
+          q: keyword,
+          adapter: selectedAdapterId
+        }
       });
       setKeywordSearch(prev => ({
         ...prev,
@@ -274,95 +281,116 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
           </div>
         ) : items.length > 0 ? (
           <>
-            <div className="flex items-center px-4 py-1.5 text-xs text-slate-500 font-bold">
-               <button onClick={selectAll} className="mr-3 hover:text-blue-600 transition-colors shrink-0">
+            <div className="px-4 py-1.5 text-xs text-slate-500 font-bold grid grid-cols-12 gap-3 items-center">
+               <button onClick={selectAll} className="col-span-1 hover:text-blue-600 transition-colors flex items-center justify-start">
                   {selectedIds.size === items.length ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
                </button>
-               <div className="grid grid-cols-12 gap-3 w-full items-center">
-                  <span className="col-span-6">资源名称</span>
-                  <span className="col-span-2 text-center">大小</span>
-                  <span className="col-span-4 text-right">操作</span>
-               </div>
+               <span className="col-span-5">资源名称</span>
+               <span className="col-span-2">关键词</span>
+               <span className="col-span-4 text-right">操作</span>
             </div>
             {paginatedItems.map((item) => (
               <div 
                 key={item.magnet} 
                 className={`glass rounded-xl border border-white/80 overflow-hidden transition-all hover:bg-white/80 ${selectedIds.has(item.magnet) ? 'border-blue-400 bg-blue-50/50 shadow-md' : 'shadow-sm'}`}
               >
-                <div className="p-2.5 flex items-center gap-3">
+                <div 
+                  className="p-2.5 grid grid-cols-12 gap-3 items-center cursor-pointer"
+                  onClick={() => setExpandedId(expandedId === item.magnet ? null : item.magnet)}
+                >
                   <button 
-                    onClick={() => toggleSelect(item.magnet)}
-                    className={`shrink-0 transition-colors ${selectedIds.has(item.magnet) ? 'text-blue-600' : 'text-slate-300 hover:text-slate-500'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(item.magnet);
+                    }}
+                    className={`col-span-1 transition-colors ${selectedIds.has(item.magnet) ? 'text-blue-600' : 'text-slate-300 hover:text-slate-500'}`}
                   >
                     {selectedIds.has(item.magnet) ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
                   
-                  <div className="grid grid-cols-12 gap-3 w-full items-center">
-                    <div className="col-span-6 min-w-0">
-                      <h4 
-                        className="text-sm font-bold text-slate-800 truncate cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => setExpandedId(expandedId === item.magnet ? null : item.magnet)}
+                  <div className="col-span-5 min-w-0">
+                    <h4 
+                      className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(item.magnet);
+                      }}
+                    >
+                      {item.title || '未命名资源'}
+                    </h4>
+                  </div>
+
+                  <div className="col-span-2 flex flex-wrap gap-1">
+                    {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
+                      <span 
+                        key={kw} 
+                        className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleKeywordClick(item.magnet, kw);
+                        }}
                       >
-                        {item.title || '未命名资源'}
-                      </h4>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
-                          <span 
-                            key={kw} 
-                            className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold cursor-pointer hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleKeywordClick(item.magnet, kw);
-                            }}
-                          >
-                            {kw}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-span-2 text-center text-xs text-slate-500 font-medium">
-                      {item.sizeLabel || (item.size ? `${item.size} B` : '-')}
-                    </div>
-                    <div className="col-span-4 flex items-center justify-end gap-1">
-                       <button
-                          onClick={() => navigator.clipboard.writeText(item.magnet)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
-                          title="复制磁链"
-                       >
-                          <Copy size={14} />
-                       </button>
-                       <button
-                          onClick={() => window.open(item.magnet, '_blank')}
-                          className="p-1.5 text-slate-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
-                          title="打开"
-                       >
-                          <ExternalLink size={14} />
-                       </button>
-                       <button className="p-1.5 text-slate-400 hover:text-yellow-500 transition-colors rounded-lg hover:bg-yellow-50">
-                          <Star size={15} className={item.starred ? 'fill-yellow-500 text-yellow-500' : ''} />
-                       </button>
-                       <button 
-                          onClick={() => setExpandedId(expandedId === item.magnet ? null : item.magnet)}
-                          className="p-1.5 text-slate-400 hover:text-slate-800 transition-colors rounded-lg"
-                       >
-                          {expandedId === item.magnet ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                       </button>
-                    </div>
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="col-span-4 flex items-center justify-end gap-1">
+                     <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(item.magnet);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                        title="复制磁链"
+                     >
+                        <Copy size={14} />
+                     </button>
+                     <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(item.magnet, '_blank');
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
+                        title="打开"
+                     >
+                        <ExternalLink size={14} />
+                     </button>
+                     <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Star logic should be here if needed
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-yellow-500 transition-colors rounded-lg hover:bg-yellow-50"
+                     >
+                        <Star size={15} className={item.starred ? 'fill-yellow-500 text-yellow-500' : ''} />
+                     </button>
+                     <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteItems([item.magnet]);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                        title="从集合删除"
+                     >
+                        <Trash2 size={15} />
+                     </button>
+                     <div className="p-1.5 text-slate-400">
+                        {expandedId === item.magnet ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                     </div>
                   </div>
                 </div>
 
                 {expandedId === item.magnet && (
-                  <div className="px-[4.5rem] pb-3 animate-in slide-in-from-top-2">
+                  <div className="px-3 pb-3 animate-in slide-in-from-top-2">
                     <div className="p-3 bg-white/40 rounded-xl border border-white/80 space-y-2 shadow-inner">
                        <div className="space-y-0.5">
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">磁力链接</p>
                           <code className="text-xs text-blue-700 break-all bg-blue-50/50 p-1.5 rounded-lg border border-blue-200 block font-medium">
                             {item.magnet}
                           </code>
                        </div>
                        {item.remarks && (
                          <div className="space-y-0.5">
-                            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">备注</p>
                             <p className="text-sm text-slate-600 leading-relaxed font-medium">{item.remarks}</p>
                          </div>
                        )}
@@ -418,16 +446,6 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                            )}
                          </div>
                        )}
-                       
-                       <div className="flex justify-end pt-1">
-                          <button 
-                             onClick={() => deleteItems([item.magnet])}
-                             className="flex items-center gap-1.5 px-2.5 py-1 text-red-500 hover:bg-red-50 rounded-lg text-xs font-bold transition-all"
-                          >
-                             <Trash2 size={12} />
-                             从集合删除
-                          </button>
-                       </div>
                     </div>
                   </div>
                 )}
