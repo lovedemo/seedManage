@@ -330,8 +330,9 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                <button onClick={selectAll} className="shrink-0 hover:text-blue-600 transition-colors flex items-center justify-start mr-2">
                   {selectedIds.size === items.length ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
                </button>
-               <span className="flex-1">资源名称 / 关键词</span>
-               <span className="shrink-0 w-32 text-right">操作</span>
+               <span className="flex-1">资源名称</span>
+               <span className="shrink-0 w-[200px] text-right">关键词</span>
+               <span className="shrink-0 text-right">操作</span>
             </div>
             {paginatedItems.map((item) => (
               <div 
@@ -352,34 +353,32 @@ const CollectionDetail: React.FC<CollectionDetailProps> = ({
                     {selectedIds.has(item.magnet) ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
                   
-                  <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <h4 
-                      className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(item.magnet);
-                      }}
-                    >
-                      {item.title || '未命名资源'}
-                    </h4>
+                  <h4 
+                    className="text-sm font-bold text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors flex-1 min-w-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(item.magnet);
+                    }}
+                  >
+                    {item.title || '未命名资源'}
+                  </h4>
 
-                    <div className="shrink-0 flex flex-wrap gap-1 max-w-[40%] justify-end">
-                      {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
-                        <span 
-                          key={kw} 
-                          className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleKeywordClick(item.magnet, kw);
-                          }}
-                        >
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="shrink-0 flex flex-wrap gap-1 max-w-[200px] justify-end mr-1">
+                    {String(item.keywords || '').split(' ').filter(kw => kw).map(kw => (
+                      <span 
+                        key={kw} 
+                        className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold hover:bg-blue-100 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleKeywordClick(item.magnet, kw);
+                        }}
+                      >
+                        {kw}
+                      </span>
+                    ))}
                   </div>
 
-                  <div className="shrink-0 flex items-center justify-end gap-1.5 ml-1 w-32">
+                  <div className="shrink-0 flex items-center justify-end gap-1">
                      <button
                         onClick={(e) => {
                           e.stopPropagation();
