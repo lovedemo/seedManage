@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { FolderHeart, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import api from '../api';
-import type { Collection } from '../types';
+import type { Collection, Adapter } from '../types';
 import CollectionDetail from './CollectionDetail';
 import AddCollectionModal from '../components/AddCollectionModal';
 
-const CollectionsSection: React.FC = () => {
+interface CollectionsSectionProps {
+  selectedAdapterId: string;
+  adapters: Adapter[];
+}
+
+const CollectionsSection: React.FC<CollectionsSectionProps> = ({ selectedAdapterId, adapters }) => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -68,6 +73,8 @@ const CollectionsSection: React.FC = () => {
         collectionName={collection?.name || '未知集合'} 
         onBack={() => setSelectedCollectionId(null)}
         onRefreshCollections={fetchCollections}
+        selectedAdapterId={selectedAdapterId}
+        adapters={adapters}
       />
     );
   }
