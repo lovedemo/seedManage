@@ -15,8 +15,9 @@ const (
     PortEnv              = "PORT"
     ApibayEndpointEnv    = "MAGNET_SEARCH_ENDPOINT"
     NyaaEndpointEnv      = "NYAA_ENDPOINT"
-    SukebeiEndpointEnv   = "SUKEBEI_ENDPOINT"
-    SampleDataEnv        = "SAMPLE_DATA_FILE"
+    SukebeiEndpointEnv      = "SUKEBEI_ENDPOINT"
+    HTMLSukebeiEndpointEnv = "HTML_SUKEBEI_ENDPOINT"
+    SampleDataEnv           = "SAMPLE_DATA_FILE"
     SearchHistoryFileEnv = "SEARCH_HISTORY_FILE"
     PasswordEnv          = "PASSWORD"
 )

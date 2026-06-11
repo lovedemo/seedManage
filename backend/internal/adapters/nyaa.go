@@ -158,10 +158,13 @@ func extractInfoHashFromMagnet(magnetLink string) string {
         return ""
     }
 
+    // Split by '&' and look for the xt=urn:btih: parameter
+    // Note: the first part will be like "magnet:?xt=urn:btih:...", so we use IndexOf instead of HasPrefix
     parts := strings.Split(magnetLink, "&")
     for _, part := range parts {
-        if strings.HasPrefix(part, "xt=urn:btih:") {
-            hash := strings.TrimPrefix(part, "xt=urn:btih:")
+        idx := strings.Index(part, "xt=urn:btih:")
+        if idx >= 0 {
+            hash := part[idx+len("xt=urn:btih:"):]
             return strings.ToUpper(hash)
         }
     }
