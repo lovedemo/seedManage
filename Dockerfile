@@ -8,7 +8,7 @@ COPY frontend-v2/ .
 RUN npm run build
 
 # 第二阶段：构建后端
-FROM golang:1.23-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 WORKDIR /app
 COPY backend/ .
 # 将前端构建产物复制到后端嵌入目录
